@@ -1,6 +1,6 @@
 // ---------- Tabs ----------
 const Tabs = (function(){
-  const ids = ['overview', 'raises', 'individuals'];
+  const ids = ['overview', 'raises', 'locality', 'individuals'];
   const btns = {}, panels = {};
   ids.forEach(id => {
     btns[id] = document.getElementById('tabbtn-' + id);

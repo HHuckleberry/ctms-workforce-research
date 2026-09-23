@@ -1,12 +1,13 @@
 // ---------- Pay spread (percentile bands) ----------
-function drawSpread(svgId, wrapId, tipId, months, series, color){
+function drawSpread(svgId, wrapId, tipId, months, series, color, yDomain){
   const pts = months.map((m,i)=>({m, s: series[i]})).filter(p=>p.s);
   if (pts.length < 2) { document.getElementById(svgId).outerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:20px 0;">Not enough data.</div>'; return; }
   const W=460,H=220, ML=46, MR=10, MT=14, MB=26;
   const plotW=W-ML-MR, plotH=H-MT-MB;
   const n = pts.length;
   const allVals = pts.flatMap(p=>[p.s.p10, p.s.p90]);
-  const yMin = Math.min(...allVals)*0.96, yMax = Math.max(...allVals)*1.04;
+  const yMin = yDomain ? yDomain[0] : Math.min(...allVals)*0.96;
+  const yMax = yDomain ? yDomain[1] : Math.max(...allVals)*1.04;
   const x = i => ML+(i/(n-1))*plotW;
   const y = v => MT+plotH-((v-yMin)/(yMax-yMin))*plotH;
 
@@ -65,12 +66,13 @@ function drawSpread(svgId, wrapId, tipId, months, series, color){
 (function spreadCharts(){
   const S = DATA.salary_spread;
   if (!S) return;
-  drawSpread('spread-dc-svg','spread-dc-wrap','spread-dc-tooltip', S.months, S.dc, colorDC);
-  drawSpread('spread-dl-svg','spread-dl-wrap','spread-dl-tooltip', S.months, S.dl, colorDL);
+  const allSpreadValues = S.dc.concat(S.dl).filter(Boolean).flatMap(s=>[s.p10,s.p90]);
+  const sharedDomain = [Math.min(...allSpreadValues)*0.96, Math.max(...allSpreadValues)*1.04];
+  drawSpread('spread-dc-svg','spread-dc-wrap','spread-dc-tooltip', S.months, S.dc, colorDC, sharedDomain);
+  drawSpread('spread-dl-svg','spread-dl-wrap','spread-dl-tooltip', S.months, S.dl, colorDL, sharedDomain);
   const lastDc = [...S.dc].reverse().find(Boolean), lastDl = [...S.dl].reverse().find(Boolean);
   if (lastDc && lastDl) {
     document.getElementById('spread-foot').textContent =
       'Latest month: DC ranges '+fmtDollar(lastDc.p10)+'–'+fmtDollar(lastDc.p90)+' (p10–p90) around a '+fmtDollar(lastDc.median)+' median — more than 2x top-to-bottom at the same nominal pay plan. DL ranges '+fmtDollar(lastDl.p10)+'–'+fmtDollar(lastDl.p90)+' around '+fmtDollar(lastDl.median)+'.';
   }
 })();
-

@@ -2,17 +2,20 @@
 (function cohortTable(){
   const tbody = document.getElementById('cohort-tbody');
   const cohorts = DATA.cohorts || [];
+  function milestoneCell(result){
+    if (!result || !result.eligible) return '<span style="color:var(--text-muted);">Not mature</span>';
+    return result.retained+'/'+result.eligible+' ('+result.pct.toFixed(1)+'%)';
+  }
   cohorts.forEach(c=>{
     const tr = document.createElement('tr'); tr.className = 'drillable';
-    const retColor = c.retention_pct >= 70 ? 'var(--good)' : c.retention_pct >= 40 ? 'var(--text-primary)' : 'var(--accent-out)';
     tr.innerHTML =
       '<td>'+c.quarter+(c.left_censored?' <span class="reason-pill" style="margin-left:4px;">at inception</span>':'')+'</td>'+
       '<td class="num">'+c.joined+'</td>'+
       '<td class="num">'+c.still_present+'</td>'+
-      '<td class="num" style="color:'+retColor+'">'+c.retention_pct+'%</td>'+
+      '<td class="num">'+milestoneCell(c.retention_12m)+'</td>'+
+      '<td class="num">'+milestoneCell(c.retention_24m)+'</td>'+
       '<td class="num">'+c.median_tenure_months+' mo</td>'+
-      '<td class="num">'+(c.promoted||'–')+'</td>'+
-      '<td class="num">'+c.got_raise+'</td>';
+      '<td class="num">'+(c.promoted||'–')+'</td>';
     tr.addEventListener('click', () => PeopleTable.applyFilter('cohort', c.quarter, 'Cohort: ' + c.quarter));
     tbody.appendChild(tr);
   });
@@ -23,10 +26,8 @@
     ? ' How they came aboard: ' + howJoined.map(([k,v])=>v+' via '+k.toLowerCase().replace(/^new hire - /,'new-hire ')).join(', ') + '.'
     : '';
   document.getElementById('cohort-foot').textContent =
-    'First-observed cohort: ' + first.quarter + ' — the start of this dataset, ' + first.joined + ' people, both at CISA and left-censored. ' +
+    'First-observed cohort: ' + first.quarter + ' — the start of this dataset, ' + first.joined + ' people across ' + first.components.join(', ') + ', and left-censored. ' +
     totalJoined + ' people were first observed across ' + cohorts.length + ' quarterly cohorts through ' + fmtMonth(DATA.coverage.last) + '.' + howJoinedNote;
   document.getElementById('cohort-sub').textContent =
-    'Everyone grouped by the quarter they first appear in CTMS, tracked forward to see who’s still here. ' +
-    'Read retention across cohorts carefully: older cohorts have simply had more time to lose people, so lower retention there isn’t necessarily worse management — it’s more elapsed exposure.';
+    'Retention is measured only among people whose first-observed month is at least 12 or 24 months before '+fmtMonth(DATA.coverage.last)+'. Recent cohorts remain “Not mature” instead of being credited with retention before reaching the milestone.';
 })();
-

@@ -1,7 +1,7 @@
   <section id="rate-tier-section">
     <div class="section-head">
       <h2>Current rate tiers</h2>
-      <p class="section-sub">OPM reports an administrative <code>step_or_rate_type</code> of RATE 01&ndash;06. These are not General Schedule steps. Click a count to inspect the people currently recorded at that tier.</p>
+      <p class="section-sub">OPM reports an administrative <code>step_or_rate_type</code> of RATE 01&ndash;06. These are not General Schedule steps and OPM's data carries no job-title field, so no career-level title is attached here. Click a count to inspect the people currently recorded at that tier.</p>
     </div>
     <div class="chart-card table-scroll">
       <table class="decrease-table">
@@ -10,4 +10,16 @@
       </table>
     </div>
     <div class="chart-foot" id="rate-tier-foot"></div>
+  </section>
+
+  <section id="locality-teaser">
+    <div class="chart-card" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+      <div>
+        <div class="section-head" style="margin-bottom:0;">
+          <h2 style="margin-bottom:4px;">Where the CTMS workforce is located</h2>
+          <p class="section-sub" style="margin-bottom:0;">Most figures elsewhere in this report reflect the Washington&ndash;Baltimore area because most of the observed CTMS workforce is based there. See <b>Work Locations</b> for the directly reported locality distribution and descriptive pay figures.</p>
+        </div>
+      </div>
+      <button type="button" class="export-btn" id="locality-teaser-btn">Open Work Locations →</button>
+    </div>
   </section>

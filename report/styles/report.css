@@ -62,7 +62,7 @@
     body { background: #fff; }
     .tab-nav, .filter-bar, .search-input, .export-btn, #print-btn, .tooltip, .modal-overlay,
     .coverage-badge .dot { display: none !important; }
-    #tab-overview, #tab-raises, #tab-individuals { display: block !important; }
+    #tab-overview, #tab-raises, #tab-locality, #tab-individuals { display: block !important; }
     .chart-card, .stat-tile, .traj-card, .raise-year-card, section { break-inside: avoid; }
     table.table-scroll, .table-scroll { overflow-x: visible; }
     a[href]::after { content: none; }
@@ -207,6 +207,7 @@
 
   /* two-col grid */
   .two-col { display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; align-items: stretch; }
+  .two-col.equal-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
 
   /* ranked bar list */
@@ -372,6 +373,8 @@
   .timeline { display: flex; flex-direction: column; gap: 0; max-height: 260px; overflow-y: auto; }
   .timeline-row { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
   .timeline-row:last-child { border-bottom: none; }
+  .timeline-row-tight { border-bottom: none; padding-bottom: 2px; }
+  .timeline-row-tight + .timeline-row { padding-top: 2px; }
   .timeline-date { font-family: 'IBM Plex Mono', monospace; color: var(--text-muted); flex: none; width: 68px; }
   .timeline-desc { color: var(--text-secondary); }
   .timeline-desc b { color: var(--text-primary); font-weight: 600; }

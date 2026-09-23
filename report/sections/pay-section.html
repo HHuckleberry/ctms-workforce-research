@@ -13,7 +13,7 @@
           <svg id="pay-svg" viewBox="0 0 620 340" preserveAspectRatio="xMidYMid meet"></svg>
           <div class="tooltip" id="pay-tooltip"></div>
         </div>
-        <div class="chart-foot">Index 100 = each plan's own Oct 2023 median. Reading two very different pay tables (DC ~$85K&ndash;125K, DL ~$211K&ndash;228K) on one shared axis of relative growth.</div>
+        <div class="chart-foot" id="pay-baseline-foot"></div>
       </div>
       <div class="chart-card" style="display:flex; flex-direction:column; justify-content:center; gap:18px;">
         <div>
@@ -25,7 +25,7 @@
           <div class="stat-value" id="dl-dollar-move" style="font-size:22px;"></div>
         </div>
         <div style="border-top:1px solid var(--border); padding-top:14px;">
-          <div class="stat-label">Three January boundaries</div>
+          <div class="stat-label" id="jan-boundary-label"></div>
           <div id="jan-boundaries" style="margin-top:8px; display:flex; flex-direction:column; gap:8px;"></div>
         </div>
       </div>

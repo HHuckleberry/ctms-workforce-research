@@ -35,12 +35,14 @@
   dPath2 += ' Z';
   svg.appendChild(svgEl('path',{d:dPath2, fill:colorDL, 'fill-opacity':0.85}));
 
-  // Sep-Oct 2025 shaded band
-  const bandStart = months.indexOf('2025-09'), bandEnd = months.indexOf('2025-10');
+  // Largest two-month separation window, calculated by the pipeline.
+  const exitEvent = DATA.major_exit_event;
+  const bandStart = exitEvent ? months.indexOf(exitEvent.start) : -1;
+  const bandEnd = exitEvent ? months.indexOf(exitEvent.end) : -1;
   if (bandStart>=0 && bandEnd>=0) {
     svg.appendChild(svgEl('rect',{x:x(bandStart), y:MT, width:x(bandEnd)-x(bandStart), height:plotH, fill:colorOut, 'fill-opacity':0.08}));
     const lbl = svgEl('text',{x:(x(bandStart)+x(bandEnd))/2, y:MT-6, 'text-anchor':'middle','font-size':11,fill:colorOut,'font-family':'IBM Plex Mono, monospace','font-weight':600});
-    lbl.textContent = '−40 in 2mo';
+    lbl.textContent = (exitEvent.headcount_change>0?'+':'')+exitEvent.headcount_change+' headcount';
     svg.appendChild(lbl);
   }
 
@@ -87,8 +89,7 @@
 
   document.getElementById('headcount-foot').textContent =
     'Peak ' + total[peakIdx] + ' in ' + fmtMonth(months[peakIdx]) + ', now ' + total[lastIdx] + ' in ' + fmtMonth(months[lastIdx]) +
-    ' — a ' + Math.abs(((total[lastIdx]-total[peakIdx])/total[peakIdx]*100)).toFixed(0) + '% decline, concentrated in the Sep–Oct 2025 exit wave.';
+    ' — a ' + Math.abs(((total[lastIdx]-total[peakIdx])/total[peakIdx]*100)).toFixed(0) + '% decline. The shaded band marks the largest two-month separation window ('+fmtMonth(exitEvent.start)+'–'+fmtMonth(exitEvent.end)+').';
   document.getElementById('headcount-heading').textContent =
     'Headcount, ' + fmtMonth(months[0]) + ' – ' + fmtMonth(months[lastIdx]);
 })();
-

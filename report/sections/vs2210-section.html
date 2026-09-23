@@ -1,7 +1,7 @@
   <section id="vs2210-section">
     <div class="section-head">
       <h2>CTMS vs. the standard track</h2>
-      <p class="section-sub">CTMS (DC/DL in DHS-only cyber series) against series 2210 (IT Management) &mdash; the conventional civil-service track CTMS was built to be an alternative to &mdash; at the same components (DHS HQ + CISA, ~98% of the CTMS population). Both indexed to their own start so two very different population sizes read on one axis.</p>
+      <p class="section-sub">CTMS (DC/DL in DHS-only cyber series) against series 2210 (IT Management) inside the same fixed set of DHS components: only components that record CTMS personnel at some point in the dataset. The shared axis shows percentage headcount change from the first stable comparison month; hover for raw headcounts. <span id="vs2210-scope"></span></p>
     </div>
     <div class="chart-card">
       <div class="legend">
@@ -14,12 +14,14 @@
       </div>
       <div class="stat-grid" style="margin-top:16px;">
         <div class="stat-tile">
-          <div class="stat-value" id="vs2210-shock-ctms" style="font-size:22px;"></div>
-          <div class="stat-label">CTMS, Sep&ndash;Oct 2025 shock</div>
+          <div class="stat-value" id="vs2210-start-ctms" style="font-size:22px;"></div>
+          <div class="stat-label">CTMS, baseline &rarr; now</div>
+          <div class="stat-delta" id="vs2210-start-ctms-raw"></div>
         </div>
         <div class="stat-tile">
-          <div class="stat-value" id="vs2210-shock-it" style="font-size:22px;"></div>
-          <div class="stat-label">2210, same two months</div>
+          <div class="stat-value" id="vs2210-start-it" style="font-size:22px;"></div>
+          <div class="stat-label">2210, baseline &rarr; now</div>
+          <div class="stat-delta" id="vs2210-start-it-raw"></div>
         </div>
         <div class="stat-tile">
           <div class="stat-value" id="vs2210-peak-ctms" style="font-size:22px;"></div>
@@ -29,6 +31,13 @@
           <div class="stat-value" id="vs2210-peak-it" style="font-size:22px;"></div>
           <div class="stat-label">2210, peak &rarr; now</div>
         </div>
+      </div>
+      <div class="section-head" style="margin-top:22px;margin-bottom:8px;"><h2 style="font-size:15px;">Same comparison, component by component</h2></div>
+      <div class="table-scroll">
+        <table class="decrease-table">
+          <thead><tr><th>Component</th><th style="text-align:right">CTMS baseline</th><th style="text-align:right">CTMS now</th><th style="text-align:right">CTMS change</th><th style="text-align:right">2210 baseline</th><th style="text-align:right">2210 now</th><th style="text-align:right">2210 change</th></tr></thead>
+          <tbody id="vs2210-component-tbody"></tbody>
+        </table>
       </div>
       <div class="chart-foot" id="vs2210-foot"></div>
     </div>

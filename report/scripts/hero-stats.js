@@ -5,9 +5,10 @@
 
   const declinePct = ((DATA.latest_headcount - DATA.peak_headcount) / DATA.peak_headcount * 100);
   const s = DATA.summary;
+  const estimatedSalaryCost = DATA.estimated_salary_cost ?? DATA.total_payroll_disbursed;
   const stats = [
-    { label: 'Total payroll disbursed since inception', value: '$' + (DATA.total_payroll_disbursed/1e6).toFixed(1) + 'M', delta: null },
-    { label: 'Current headcount (Jul 2026)', value: DATA.latest_headcount, delta: null },
+    { label: 'Estimated salary during observed CTMS tenure', value: '$' + (estimatedSalaryCost/1e6).toFixed(1) + 'M', delta: null },
+    { label: 'Current headcount (' + fmtMonth(DATA.coverage.last) + ')', value: DATA.latest_headcount, delta: null },
     { label: 'Peak headcount (' + fmtMonth(DATA.peak_month) + ')', value: DATA.peak_headcount, delta: fmtPct(declinePct,0) + ' since peak', down: true },
     { label: 'Individuals tracked across ' + DATA.coverage.n_months + ' months', value: s.total_tracked_individuals, delta: null },
     { label: 'Got at least one raise', value: s.got_any_raise + ' / ' + s.total_tracked_individuals, delta: Math.round(s.got_any_raise/s.total_tracked_individuals*100) + '%', up: true },
@@ -24,4 +25,3 @@
     grid.appendChild(tile);
   });
 })();
-

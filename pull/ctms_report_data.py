@@ -29,6 +29,16 @@ SUBELEMENT_NAMES = {
 
 PRIOR_SERVICE_BUCKET_ORDER = ["New to federal service", "0.5–3 yrs prior service", "3–8 yrs prior service",
                               "8–15 yrs prior service", "15+ yrs prior service"]
+CTMS_SERIES = {"2212", "2213", "2218", "2221", "2224", "2225", "2226", "2228", "2229", "2230"}
+STABILITY_THRESHOLD = 20
+COMPONENT_NEAR_PEAK_RATIO = 0.90
+COMPONENT_CONTRACTED_RATIO = 0.60
+
+# Work-location reporting uses only fields directly present in OPM. The data
+# does not identify a CTMS-specific local market supplement or its percentage,
+# so this report does not assign supplement rates to individual localities.
+DC_METRO_LOCALITY = "WASHINGTON-BALTIMORE-ARLINGTON, DC-MD-VA-WV-PA"
+LOCALITY_EXCLUDED = {"INVALID", "REDACTED"}  # data-quality artifacts, not real localities
 
 
 def _months_between(a, b):
@@ -38,10 +48,18 @@ def _months_between(a, b):
     return (yb - ya) * 12 + (mb - ma)
 
 
+def _add_months(snapshot, count):
+    year, month = (int(value) for value in snapshot.split("-"))
+    absolute = year * 12 + month - 1 + count
+    return f"{absolute // 12:04d}-{absolute % 12 + 1:02d}"
+
+
 def main():
     full = pd.read_csv(os.path.join(OUT, "ctms_full.csv"), dtype=str)
     full["salary_num"] = pd.to_numeric(full["annualized_adjusted_basic_pay"], errors="coerce")
     people = pd.read_csv(os.path.join(OUT, "ctms_people.csv"))
+    if "still_present_latest" not in people and "still_present_jul_2026" in people:
+        people = people.rename(columns={"still_present_jul_2026": "still_present_latest"})
     events = pd.read_csv(os.path.join(OUT, "ctms_events.csv"))
     acc = pd.read_csv(os.path.join(OUT, "ctms_accessions.csv"), dtype=str)
     sep = pd.read_csv(os.path.join(OUT, "ctms_separations.csv"), dtype=str)
@@ -64,7 +82,6 @@ def main():
     # people in Jun 2022 and ramped up) - gate those series to start once the
     # population is reasonably sized, so headcount/flow show the full history
     # but pay-index and supervisory-share don't chart statistical noise.
-    STABILITY_THRESHOLD = 20
     stable_start_i = next((i for i, v in enumerate(headcount_series["total"]) if v >= STABILITY_THRESHOLD), 0)
     stable_months = months[stable_start_i:]
 
@@ -74,6 +91,8 @@ def main():
         "months": stable_months,
         "dc_median": [None if pd.isna(v) else round(v) for v in sal.get("DC", pd.Series(index=stable_months)).reindex(stable_months)],
         "dl_median": [None if pd.isna(v) else round(v) for v in sal.get("DL", pd.Series(index=stable_months)).reindex(stable_months)],
+        "baseline_month": stable_months[0],
+        "stability_threshold": STABILITY_THRESHOLD,
     }
 
     supv = (full.groupby("snapshot")["supervisory_status"]
@@ -89,6 +108,24 @@ def main():
         "separations": sep_by_month.tolist(),
         "net": (acc_by_month - sep_by_month).tolist(),
     }
+    major_exit_event = None
+    if len(months) >= 2:
+        exit_windows = []
+        for end_index in range(1, len(months)):
+            start_index = end_index - 1
+            departures = int(sep_by_month.iloc[start_index] + sep_by_month.iloc[end_index])
+            baseline_index = max(0, start_index - 1)
+            headcount_change = int(headcount_series["total"][end_index] - headcount_series["total"][baseline_index])
+            exit_windows.append((departures, end_index, headcount_change))
+        departures, end_index, headcount_change = max(exit_windows, key=lambda item: item[0])
+        total_departures = int(sep_by_month.sum())
+        major_exit_event = {
+            "start": months[end_index - 1],
+            "end": months[end_index],
+            "departures": departures,
+            "headcount_change": headcount_change,
+            "share_of_all_departures_pct": round(departures / total_departures * 100, 1) if total_departures else None,
+        }
 
     dec_events = events[events.event == "pay_decrease"]
     decrease_reasons = dec_events["decrease_reason"].value_counts().to_dict()
@@ -115,7 +152,7 @@ def main():
     # are drawn from exactly the same rows the report's drill-down table can
     # filter to (a raw-snapshot count and a people-table count could differ
     # by an edge case or two; using one source keeps "click the 2 -> see 2" exact).
-    active_people = people[people["still_present_jul_2026"]]
+    active_people = people[people["still_present_latest"]]
     duty_station = (active_people["latest_duty_station"].str.title().value_counts().head(8).to_dict())
     education = (active_people["latest_education_bracket"].value_counts().to_dict())
     age = (active_people["latest_age_bracket"].value_counts().sort_index().to_dict())
@@ -187,6 +224,81 @@ def main():
             "tiers": tiers,
         })
 
+    # Within-tier pay compression: does the size of a person's raise that
+    # year correlate with where they already sat in their rate tier's pay
+    # range? Checked against two more mundane explanations before trusting
+    # this - a concurrent rate-tier/pay-plan change landing on the same
+    # month (too few people, ~2/year, to explain the spread) and duty-station
+    # variation (even people in the same city show wide spread from 2024 on,
+    # so it isn't locality tables moving unevenly either). DC only - DL's
+    # per-tier samples are too thin (single digits) to read a slope from.
+    MIN_TIER_N_FOR_CORR = 8
+
+    def _linreg(x, y):
+        """Simple least-squares slope/intercept - avoids adding numpy/scipy
+        as a dependency for one line of math."""
+        n = len(x)
+        if n < 2 or x.nunique() < 2:
+            return None, None
+        xm, ym = x.mean(), y.mean()
+        cov = ((x - xm) * (y - ym)).sum()
+        var = ((x - xm) ** 2).sum()
+        if var == 0:
+            return None, None
+        slope = cov / var
+        return round(float(slope), 6), round(float(ym - slope * xm), 3)
+
+    pay_compression = []
+    for ry in raise_years:
+        m = person_deltas(ry["from_month"], ry["to_month"])
+        m = m.merge(
+            history[history.snapshot == ry["to_month"]][["person_id", "pay_plan_code", "step_or_rate_type"]],
+            on="person_id", how="left",
+        )
+        dc = m[m.pay_plan_code == "DC"]
+
+        by_tier = []
+        for tier, g in dc.groupby("step_or_rate_type"):
+            if len(g) < MIN_TIER_N_FOR_CORR:
+                continue
+            corr = g["a"].corr(g["pct"]) if g["a"].nunique() > 1 else None
+            # Bottom third vs top third by where each person already sat in
+            # this tier's own starting-salary range - checks whether the
+            # compression above is a smooth taper (top third still gets a
+            # real, positive raise) or a hard ceiling (top third clusters at
+            # ~0%, consistent with a statutory per-tier pay cap under 6
+            # U.S.C. 658 - CTMS's own public materials only ever post
+            # "typical starting" ranges, never a stated ceiling, so a person
+            # already at a tier's practical max literally cannot be paid
+            # more within that tier regardless of rating).
+            g_sorted = g.sort_values("a")
+            third = max(1, len(g_sorted) // 3)
+            bottom, top = g_sorted.iloc[:third], g_sorted.iloc[-third:]
+            by_tier.append({
+                "tier": tier, "n": int(len(g)),
+                "corr": round(float(corr), 3) if corr is not None and pd.notna(corr) else None,
+                "min_salary": round(g["a"].min()), "max_salary": round(g["a"].max()),
+                "bottom_third_avg_pct": round(float(bottom["pct"].mean()), 2),
+                "top_third_avg_pct": round(float(top["pct"].mean()), 2),
+                "top_third_n": int(len(top)),
+                "top_third_at_zero": int((top["pct"] <= 0.1).sum()),
+            })
+        by_tier.sort(key=lambda t: t["tier"])
+
+        overall_corr = dc["a"].corr(dc["pct"]) if len(dc) > 1 and dc["a"].nunique() > 1 else None
+        slope, intercept = _linreg(dc["a"], dc["pct"]) if len(dc) > 1 else (None, None)
+        pay_compression.append({
+            "year": ry["year"], "from_month": ry["from_month"], "to_month": ry["to_month"],
+            "overall_corr": round(float(overall_corr), 3) if overall_corr is not None and pd.notna(overall_corr) else None,
+            "overall_n": int(len(dc)),
+            "overall_slope": slope, "overall_intercept": intercept,
+            "by_tier": by_tier,
+            "points": [
+                {"starting_salary": round(r.a), "raise_pct": round(r.pct, 2), "tier": r.step_or_rate_type}
+                for r in dc.itertuples() if pd.notna(r.step_or_rate_type)
+            ],
+        })
+
     # Subelement comparison: pay, retention, promotion, supervisory rate by
     # component. Uses each person's FIRST subelement (which one they actually
     # joined into), not latest, so results describe where CTMS placed people,
@@ -202,10 +314,76 @@ def main():
             "median_salary": round(valid_sal.median()) if len(valid_sal) else None,
             "pct_dl": round((g["end_pay_plan"] == "DL").mean() * 100, 1),
             "pct_supervisor": round(g["became_supervisor"].mean() * 100, 1),
-            "pct_still_present": round(g["still_present_jul_2026"].mean() * 100, 1),
+            "pct_still_present": round(g["still_present_latest"].mean() * 100, 1),
             "median_prior_years": round(g["years_federal_before_ctms"].dropna().median(), 1) if g["years_federal_before_ctms"].notna().any() else None,
         })
     subelement_stats.sort(key=lambda s: -s["n"])
+
+    # Component adoption and series expansion monitoring. These use raw
+    # population counts rather than reconstructed people.
+    component_adoption = []
+    for code, group in full.groupby("agency_subelement_code"):
+        counts = group.groupby("snapshot").size().reindex(months, fill_value=0)
+        first_observed = group["snapshot"].min()
+        first_index = months.index(first_observed)
+        latest_group = group[group["snapshot"] == months[-1]]
+        peak_month = counts.idxmax()
+        current = int(counts.iloc[-1])
+        peak = int(counts.max())
+        if first_observed == months[-1]:
+            status = "New this month"
+        elif current == 0:
+            status = "No current records"
+        elif current >= peak * COMPONENT_NEAR_PEAK_RATIO:
+            status = "Near peak"
+        elif current <= peak * COMPONENT_CONTRACTED_RATIO:
+            status = "Contracted"
+        else:
+            status = "Below peak"
+        supplied = group["agency_subelement"].dropna() if "agency_subelement" in group else pd.Series(dtype=str)
+        component_adoption.append({
+            "code": code,
+            "name": SUBELEMENT_NAMES.get(code, supplied.iloc[0] if len(supplied) else code),
+            "first_observed": first_observed,
+            "previous_snapshot": months[first_index - 1] if first_index > 0 else None,
+            "left_censored": first_index == 0,
+            "starting_headcount": int(counts.loc[first_observed]),
+            "current_headcount": current,
+            "peak_headcount": peak,
+            "peak_month": peak_month,
+            "current_dc": int(latest_group["pay_plan_code"].eq("DC").sum()),
+            "current_dl": int(latest_group["pay_plan_code"].eq("DL").sum()),
+            "series": sorted(group["occupational_series_code"].dropna().astype(str).str.zfill(4).unique()),
+            "status": status,
+        })
+    component_adoption.sort(key=lambda row: (row["first_observed"], row["code"]))
+
+    series_monitor = []
+    series_audit_path = os.path.join(OUT, "ctms_dc_dl_series_audit.csv")
+    if os.path.exists(series_audit_path):
+        audit = pd.read_csv(series_audit_path, dtype=str)
+        audit["series"] = audit["series"].astype(str).str.zfill(4)
+        audit["headcount_num"] = pd.to_numeric(audit["headcount"], errors="coerce").fillna(0).astype(int)
+        for series, group in audit.groupby("series"):
+            monthly = group.groupby("snapshot")["headcount_num"].sum().reindex(months, fill_value=0)
+            positive = monthly[monthly > 0]
+            if positive.empty:
+                continue
+            first_observed = positive.index[0]
+            current = int(monthly.iloc[-1])
+            series_monitor.append({
+                "series": series,
+                "in_current_rule": series in CTMS_SERIES,
+                "first_observed": first_observed,
+                "current_headcount": current,
+                "peak_headcount": int(monthly.max()),
+                "peak_month": monthly.idxmax(),
+                "components": sorted(group.loc[group["headcount_num"] > 0, "component_code"].dropna().unique()),
+                "status": ("Review for inclusion" if series not in CTMS_SERIES else
+                           "New this month" if first_observed == months[-1] else
+                           "No current records" if current == 0 else "Tracked"),
+            })
+        series_monitor.sort(key=lambda row: (not row["in_current_rule"], row["first_observed"], row["series"]))
 
     # Salary spread (not just median) per month per plan - p25/p75/min/max,
     # so within-plan pay inequality is visible, not just central tendency.
@@ -225,16 +403,17 @@ def main():
         salary_spread["dc"].append(pct_stats(snap[snap.pay_plan_code == "DC"]["salary_num"]))
         salary_spread["dl"].append(pct_stats(snap[snap.pay_plan_code == "DL"]["salary_num"]))
 
-    # Total payroll actually disbursed: each row is one person-month at an
-    # annualized rate, so /12 gives that month's real pay. This is a figure
-    # we can compute directly and defend, unlike the appropriated/requested
-    # figures in the accountability section which come from secondary reporting.
-    total_payroll_disbursed = round((full["salary_num"] / 12).dropna().sum())
+    # Estimated salary represented by observed CTMS tenure. Each employment
+    # snapshot is one observed person-month, valued at 1/12 of that month's
+    # annualized adjusted basic pay. This uses the duration and salary evidence
+    # available in OPM, but it is not a payroll ledger: first/last partial months,
+    # bonuses, benefits, unpaid time, and amounts outside this field are unknown.
+    estimated_salary_cost = round((full["salary_num"] / 12).dropna().sum())
 
     # Veteran status and its relationship to retention.
     veteran_counts = people["veteran"].value_counts().to_dict()
     veteran_retention = {
-        v: round(g["still_present_jul_2026"].mean() * 100, 1)
+        v: round(g["still_present_latest"].mean() * 100, 1)
         for v, g in people.groupby("veteran") if len(g) >= 5
     }
 
@@ -249,13 +428,13 @@ def main():
 
     # Does prior federal experience predict retention? Does relocating?
     prior_vs_retention = [
-        {"bucket": b, "retention_pct": round(g["still_present_jul_2026"].mean() * 100, 1), "n": len(g)}
+        {"bucket": b, "retention_pct": round(g["still_present_latest"].mean() * 100, 1), "n": len(g)}
         for b in PRIOR_SERVICE_BUCKET_ORDER
         for g in [people[people["prior_service_bucket"] == b]]
         if len(g) >= 5
     ]
     reloc_vs_retention = {
-        label: round(g["still_present_jul_2026"].mean() * 100, 1)
+        label: round(g["still_present_latest"].mean() * 100, 1)
         for label, g in [("Relocated at least once", people[people["had_relocation"]]),
                           ("Never relocated", people[~people["had_relocation"]])]
         if len(g) >= 5
@@ -285,9 +464,13 @@ def main():
 
     # Current administrative rate tiers. OPM reports these as RATE 01–06 in
     # step_or_rate_type; within DC they form a clear pay progression. DL uses
-    # the same field but not every tier is populated in every month.
+    # the same field but not every tier is populated in every month. No title
+    # is attached to a tier here: OPM has no job-title field, and the public
+    # Career Level Guide does not establish a one-to-one mapping between its
+    # titles and OPM's administrative rate codes. Titles are therefore not
+    # inferred from rate tiers.
     rate_tiers = []
-    active_by_rate = people[people["still_present_jul_2026"]]
+    active_by_rate = people[people["still_present_latest"]]
     for tier in [f"RATE {i:02d}" for i in range(1, 7)]:
         g = active_by_rate[active_by_rate["latest_rate_tier"] == tier]
         if len(g) == 0:
@@ -310,6 +493,77 @@ def main():
     rate_change_summary = {
         "events": int(len(rate_changes)),
         "people": int(rate_changes["person_id"].nunique()) if len(rate_changes) else 0,
+    }
+
+    # Directly observed work-location facts. Salary medians are deliberately
+    # descriptive: differences can reflect rate tier, role mix, seniority,
+    # component, and adjustments already embedded in OPM's annualized pay.
+    active_locality = active_by_rate[
+        active_by_rate["latest_locality"].notna()
+        & ~active_by_rate["latest_locality"].isin(LOCALITY_EXCLUDED)
+    ].copy()
+    historical_locality_counts = (
+        full[full["locality_pay_area"].notna() & ~full["locality_pay_area"].isin(LOCALITY_EXCLUDED)]
+        ["locality_pay_area"].value_counts().to_dict()
+    )
+    locality_rows = []
+    for locality, group in active_locality.groupby("latest_locality"):
+        salary = group["end_salary"].dropna()
+        locality_rows.append({
+            "locality": locality,
+            "active_headcount": int(len(group)),
+            "active_share_pct": round(len(group) / len(active_locality) * 100, 1) if len(active_locality) else None,
+            "dc_count": int(group["end_pay_plan"].eq("DC").sum()),
+            "dl_count": int(group["end_pay_plan"].eq("DL").sum()),
+            "median_adjusted_basic_pay": round(salary.median()) if len(salary) else None,
+            "historical_person_months": int(historical_locality_counts.get(locality, 0)),
+        })
+    locality_rows.sort(key=lambda row: (-row["active_headcount"], row["locality"]))
+    dc_count = int(active_locality["latest_locality"].eq(DC_METRO_LOCALITY).sum())
+
+    # Rate-tier floor/ceiling, DC-metro vs. elsewhere: the observed min/median/
+    # max pay within each administrative RATE tier, split by the one
+    # geographic grouping with real sample size (DC-metro is the population's
+    # dominant cluster; every other individual locality is too thin on its
+    # own, even across the full history - see the by-locality table above).
+    # Still purely descriptive - a min/max/median is a fact about what was
+    # observed, not an inferred percentage or causal locality effect. Uses
+    # the full historical panel (every person-month), not just the latest
+    # snapshot, for the same sample-size reason. DC pay plan only - DL's
+    # per-tier counts outside DC-metro are close to zero across the whole
+    # 2022-2026 window.
+    MIN_N_FOR_TIER_RANGE = 12
+    tier_panel = full.dropna(subset=["salary_num", "step_or_rate_type", "pay_plan_code"])
+    tier_panel = tier_panel[
+        (tier_panel["pay_plan_code"] == "DC")
+        & ~tier_panel["locality_pay_area"].isin(LOCALITY_EXCLUDED)
+    ]
+
+    def _tier_range(g):
+        if len(g) < MIN_N_FOR_TIER_RANGE:
+            return None
+        return {
+            "n": int(len(g)), "min": round(g["salary_num"].min()),
+            "median": round(g["salary_num"].median()), "max": round(g["salary_num"].max()),
+        }
+
+    tier_ranges = []
+    for tier, tg in tier_panel.groupby("step_or_rate_type"):
+        tier_ranges.append({
+            "tier": tier,
+            "dc_metro": _tier_range(tg[tg["locality_pay_area"] == DC_METRO_LOCALITY]),
+            "elsewhere": _tier_range(tg[tg["locality_pay_area"] != DC_METRO_LOCALITY]),
+        })
+    tier_ranges.sort(key=lambda r: r["tier"])
+
+    locality_context = {
+        "latest_snapshot": months[-1],
+        "active_total": int(len(active_locality)),
+        "active_localities": int(active_locality["latest_locality"].nunique()),
+        "dc_metro_count": dc_count,
+        "dc_metro_share_pct": round(dc_count / len(active_locality) * 100, 1) if len(active_locality) else None,
+        "by_locality": locality_rows,
+        "tier_ranges": tier_ranges,
     }
 
     # Boomerang check: anyone who separated and a later accession shares their
@@ -363,9 +617,25 @@ def main():
     # Cohorts: when people were first observed in CTMS, and who's still here.
     cohorts = []
     latest_snapshot = months[-1]
+    for milestone in (6, 12, 24):
+        target = people["first_snapshot"].map(lambda value: _add_months(value, milestone))
+        people[f"eligible_{milestone}m"] = target.le(latest_snapshot)
+        people[f"retained_{milestone}m"] = people[f"eligible_{milestone}m"] & people["last_snapshot"].ge(target)
+
+    def milestone_result(group, milestone):
+        eligible = group[group[f"eligible_{milestone}m"]]
+        retained = int(eligible[f"retained_{milestone}m"].sum())
+        return {
+            "eligible": int(len(eligible)),
+            "retained": retained,
+            "pct": round(retained / len(eligible) * 100, 1) if len(eligible) else None,
+        }
+
+    retention_milestones = {str(m): milestone_result(people, m) for m in (6, 12, 24)}
     for q, g in people.groupby("cohort_quarter"):
-        still = int(g["still_present_jul_2026"].sum())
+        still = int(g["still_present_latest"].sum())
         joined = len(g)
+        components = sorted({SUBELEMENT_NAMES.get(code, code) for code in g["agency_subelement"].dropna()})
         cohorts.append({
             "quarter": q,
             "joined": joined,
@@ -375,6 +645,10 @@ def main():
             "promoted": int(g["promoted_dc_to_dl"].sum()),
             "got_raise": int(g["got_any_raise"].sum()),
             "left_censored": bool(g["joined_left_censored"].any()),
+            "retention_6m": milestone_result(g, 6),
+            "retention_12m": milestone_result(g, 12),
+            "retention_24m": milestone_result(g, 24),
+            "components": components,
         })
     cohorts.sort(key=lambda c: c["quarter"])
 
@@ -419,7 +693,7 @@ def main():
             "pct_change": None if pd.isna(r["salary_change_pct"]) else round(r["salary_change_pct"], 1),
             "promoted": bool(r["promoted_dc_to_dl"]),
             "supervisor": bool(r["became_supervisor"]),
-            "active": bool(r["still_present_jul_2026"]),
+            "active": bool(r["still_present_latest"]),
             "tenure_months": int(r["span_months"]),
             "has_gap": bool(r["has_gap"]),
             "prior_service_bucket": r["prior_service_bucket"],
@@ -461,13 +735,18 @@ def main():
             rows.append(e)
         person_events[pid] = rows
 
-    # CTMS (DC/DL in DHS-only cyber series) vs. IT-management series 2210
-    # at the same DHS components (HSAA + HSCA, ~98% of the CTMS population).
+    # CTMS (DC/DL in DHS-only cyber series) vs. IT-management series 2210,
+    # restricted to the fixed set of components that use CTMS at any point.
     vs_2210 = None
     vs_2210_path = os.path.join(OUT, "ctms_vs_2210.csv")
     if os.path.exists(vs_2210_path):
         cmp_df = pd.read_csv(vs_2210_path).set_index("snapshot")
-        cmp_df = cmp_df.reindex(months).dropna()
+        component_codes = []
+        if "component_codes" in cmp_df and len(cmp_df):
+            scope_values = cmp_df["component_codes"].dropna()
+            if len(scope_values):
+                component_codes = [c for c in str(scope_values.iloc[0]).split(",") if c]
+        cmp_df = cmp_df.reindex(stable_months).dropna(subset=["ctms_total", "series_2210"])
         cmp_months = cmp_df.index.tolist()
         ctms_col = "ctms_total" if "ctms_total" in cmp_df else "ctms_2230"
         ctms_peak_m = cmp_df[ctms_col].idxmax()
@@ -478,20 +757,80 @@ def main():
         def pct_change(a, b):
             return round((b - a) / a * 100, 1) if a else None
 
-        shock_a, shock_b = ("2025-09", "2025-10")
+        def trailing_change(series, months_back):
+            if len(series) <= months_back:
+                return None
+            return pct_change(series.iloc[-(months_back + 1)], series.iloc[-1])
+
+        component_comparison = []
+        detail_path = os.path.join(OUT, "ctms_vs_2210_by_component.csv")
+        if os.path.exists(detail_path):
+            cmp_detail = pd.read_csv(detail_path, dtype={"component_code": str})
+            cmp_detail = cmp_detail[cmp_detail["component_code"].isin(component_codes)]
+            cmp_detail["ctms_total"] = pd.to_numeric(cmp_detail["ctms_total"], errors="coerce").fillna(0)
+            cmp_detail["series_2210"] = pd.to_numeric(cmp_detail["series_2210"], errors="coerce").fillna(0)
+            for code, group in cmp_detail.groupby("component_code"):
+                monthly = (group.groupby("snapshot")[["ctms_total", "series_2210"]]
+                           .sum().reindex(cmp_months, fill_value=0))
+                ctms_start_value = int(monthly["ctms_total"].iloc[0])
+                it_start_value = int(monthly["series_2210"].iloc[0])
+                ctms_current_value = int(monthly["ctms_total"].iloc[-1])
+                it_current_value = int(monthly["series_2210"].iloc[-1])
+                component_comparison.append({
+                    "code": code,
+                    "name": SUBELEMENT_NAMES.get(code, code),
+                    "ctms_start": ctms_start_value,
+                    "ctms_current": ctms_current_value,
+                    "ctms_change_pct": pct_change(ctms_start_value, ctms_current_value),
+                    "it_start": it_start_value,
+                    "it_current": it_current_value,
+                    "it_change_pct": pct_change(it_start_value, it_current_value),
+                })
+            component_comparison.sort(key=lambda row: (-row["ctms_current"], row["code"]))
+
         vs_2210 = {
             "months": cmp_months,
             "ctms": cmp_df[ctms_col].tolist(),
             "series_2210": cmp_df["series_2210"].tolist(),
-            "ctms_index": [round(v / cmp_df[ctms_col].iloc[0] * 100, 1) for v in cmp_df[ctms_col]],
-            "series_2210_index": [round(v / cmp_df["series_2210"].iloc[0] * 100, 1) for v in cmp_df["series_2210"]],
+            "ctms_change_pct": [pct_change(cmp_df[ctms_col].iloc[0], v) for v in cmp_df[ctms_col]],
+            "series_2210_change_pct": [pct_change(cmp_df["series_2210"].iloc[0], v) for v in cmp_df["series_2210"]],
+            "baseline_month": cmp_months[0],
+            "components": [{"code": code, "name": SUBELEMENT_NAMES.get(code, code)} for code in component_codes],
+            "ctms_start_to_now_pct": pct_change(cmp_df[ctms_col].iloc[0], ctms_now),
+            "it_start_to_now_pct": pct_change(cmp_df["series_2210"].iloc[0], it_now),
+            "ctms_start": int(cmp_df[ctms_col].iloc[0]),
+            "ctms_current": int(ctms_now),
+            "it_start": int(cmp_df["series_2210"].iloc[0]),
+            "it_current": int(it_now),
+            "ctms_12m_pct": trailing_change(cmp_df[ctms_col], 12),
+            "it_12m_pct": trailing_change(cmp_df["series_2210"], 12),
+            "ctms_24m_pct": trailing_change(cmp_df[ctms_col], 24),
+            "it_24m_pct": trailing_change(cmp_df["series_2210"], 24),
+            "component_breakdown": component_comparison,
             "ctms_peak": {"month": ctms_peak_m, "value": int(ctms_peak)},
             "it_peak": {"month": it_peak_m, "value": int(it_peak)},
             "ctms_peak_to_now_pct": pct_change(ctms_peak, ctms_now),
             "it_peak_to_now_pct": pct_change(it_peak, it_now),
-            "shock_ctms_pct": pct_change(cmp_df.loc[shock_a, ctms_col], cmp_df.loc[shock_b, ctms_col]) if shock_a in cmp_df.index and shock_b in cmp_df.index else None,
-            "shock_it_pct": pct_change(cmp_df.loc[shock_a, "series_2210"], cmp_df.loc[shock_b, "series_2210"]) if shock_a in cmp_df.index and shock_b in cmp_df.index else None,
         }
+
+    validation = None
+    validation_path = os.path.join(OUT, "ctms_validation.json")
+    if os.path.exists(validation_path):
+        with open(validation_path, encoding="utf-8") as f:
+            validation = json.load(f)
+
+    peak_index = headcount_series["total"].index(max(headcount_series["total"]))
+    peak_month = months[peak_index]
+    peak_headcount = int(headcount_series["total"][peak_index])
+    latest_headcount = int(len(latest))
+    accountability_metrics = {
+        "peak_headcount": peak_headcount,
+        "peak_month": peak_month,
+        "latest_headcount": latest_headcount,
+        "peak_to_latest_pct": round((latest_headcount - peak_headcount) / peak_headcount * 100, 1) if peak_headcount else None,
+        "months_from_june_2024_to_peak": _months_between("2024-06", peak_month),
+        "retention_24m": retention_milestones["24"],
+    }
 
     report = {
         "generated": pd.Timestamp.now("UTC").isoformat(),
@@ -500,6 +839,7 @@ def main():
         "salary": salary_series,
         "supervisory_pct": supervisory_pct,
         "flow": flow,
+        "major_exit_event": major_exit_event,
         "separation_reasons": sep_reasons_people,
         "pay_decrease_reasons": decrease_reasons,
         "pay_decreases": pay_decreases,
@@ -508,6 +848,7 @@ def main():
         "age_latest": age,
         "jan_boundaries": jan_boundaries,
         "cohorts": cohorts,
+        "retention_milestones": retention_milestones,
         "how_joined_counts": how_joined_counts,
         "prior_service": prior_service,
         "prior_service_summary": prior_service_summary,
@@ -516,9 +857,20 @@ def main():
         "person_events": person_events,
         "vs_2210": vs_2210,
         "raise_years": raise_years,
+        "pay_compression": pay_compression,
         "subelement_stats": subelement_stats,
+        "component_adoption": component_adoption,
+        "series_monitor": series_monitor,
+        "validation": validation,
+        "methodology_settings": {
+            "stability_threshold": STABILITY_THRESHOLD,
+            "component_near_peak_ratio": COMPONENT_NEAR_PEAK_RATIO,
+            "component_contracted_ratio": COMPONENT_CONTRACTED_RATIO,
+        },
+        "accountability_metrics": accountability_metrics,
         "salary_spread": salary_spread,
-        "total_payroll_disbursed": total_payroll_disbursed,
+        "estimated_salary_cost": estimated_salary_cost,
+        "salary_cost_method": "Sum of one-twelfth of annualized adjusted basic pay for every observed CTMS person-month; not a payroll-ledger total.",
         "veteran_counts": veteran_counts,
         "veteran_retention": veteran_retention,
         "tenure_trend": tenure_trend,
@@ -527,13 +879,14 @@ def main():
         "time_to_advance": time_to_advance,
         "rate_tiers": rate_tiers,
         "rate_change_summary": rate_change_summary,
+        "locality_context": locality_context,
         "boomerangs": boomerangs,
         "summary": summary,
         "top_raises": top_raises,
         "promotions": promotions,
-        "latest_headcount": int(len(latest)),
-        "peak_headcount": int(headcount_series["total"][headcount_series["total"].index(max(headcount_series["total"]))]),
-        "peak_month": months[headcount_series["total"].index(max(headcount_series["total"]))],
+        "latest_headcount": latest_headcount,
+        "peak_headcount": peak_headcount,
+        "peak_month": peak_month,
     }
 
     with open(os.path.join(OUT, "ctms_report_data.json"), "w") as f:
