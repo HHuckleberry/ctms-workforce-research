@@ -1,0 +1,39 @@
+  <section id="retention-factors-section">
+    <div class="section-head">
+      <h2>What predicts staying</h2>
+      <p class="section-sub" id="retention-factors-sub">Three things worth checking before assuming they matter: prior federal experience, relocating, and veteran status.</p>
+    </div>
+    <div class="two-col">
+      <div class="chart-card">
+        <div class="section-head" style="margin-bottom:16px;"><h2 style="font-size:16px;">Retention by prior federal experience</h2></div>
+        <div class="bar-list" id="prior-retention-list"></div>
+        <div class="chart-foot" id="prior-retention-foot"></div>
+      </div>
+      <div class="chart-card">
+        <div class="section-head" style="margin-bottom:16px;"><h2 style="font-size:16px;">Relocation &amp; veteran status</h2></div>
+        <div class="bar-list" id="reloc-veteran-list"></div>
+        <div class="chart-foot" id="reloc-veteran-foot"></div>
+      </div>
+    </div>
+    <div class="two-col" style="margin-top:18px;">
+      <div class="chart-card">
+        <div class="section-head" style="margin-bottom:16px;"><h2 style="font-size:16px;">Tenure-group mix over time</h2></div>
+        <div class="chart-wrap" id="tenure-wrap">
+          <svg id="tenure-svg" viewBox="0 0 460 220" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="tooltip" id="tenure-tooltip"></div>
+        </div>
+        <div class="legend" id="tenure-legend" style="margin-top:10px;"></div>
+      </div>
+      <div class="chart-card" style="display:flex; flex-direction:column; justify-content:center; gap:16px;">
+        <div>
+          <div class="stat-value" id="time-to-promo" style="font-size:22px;"></div>
+          <div class="stat-label">Median months to promotion (DC&rarr;DL)</div>
+        </div>
+        <div>
+          <div class="stat-value" id="time-to-supervisor" style="font-size:22px;"></div>
+          <div class="stat-label">Median months to becoming a supervisor</div>
+        </div>
+        <div style="border-top:1px solid var(--border); padding-top:14px; font-size:12.5px; color:var(--text-secondary);" id="boomerang-note"></div>
+      </div>
+    </div>
+  </section>
