@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>CTMS Workforce Trajectory</title>
 <style>
 {{ include "styles/report.css" }}
@@ -18,6 +19,7 @@
   <div class="tab-nav" role="tablist">
     <button class="tab-btn active" id="tabbtn-overview" role="tab" aria-selected="true" aria-controls="tab-overview">Overview</button>
     <button class="tab-btn" id="tabbtn-raises" role="tab" aria-selected="false" aria-controls="tab-raises">Pay Raises by Year</button>
+    <button class="tab-btn" id="tabbtn-locality" role="tab" aria-selected="false" aria-controls="tab-locality">Work Locations</button>
     <button class="tab-btn" id="tabbtn-individuals" role="tab" aria-selected="false" aria-controls="tab-individuals">All Individuals <span id="tab-individuals-count" class="tab-count"></span></button>
   </div>
 
@@ -43,6 +45,8 @@
 
 {{ include "sections/subelement-section.html" }}
 
+{{ include "sections/monitoring-section.html" }}
+
 {{ include "sections/retention-factors-section.html" }}
 
 {{ include "sections/reasons-section.html" }}
@@ -55,10 +59,16 @@
 
 {{ include "sections/accountability-section.html" }}
 
+{{ include "sections/validation-section.html" }}
+
   </div>
 
   <div id="tab-raises" role="tabpanel" hidden>
   {{ include "sections/raises-section.html" }}
+  </div>
+
+  <div id="tab-locality" role="tabpanel" hidden>
+  {{ include "sections/locality-tab-section.html" }}
   </div>
 
   <div id="tab-individuals" role="tabpanel" hidden>
@@ -81,6 +91,7 @@
 {{ include "scripts/pay-growth-indexed-line-chart.js" }}
 {{ include "scripts/pay-spread-percentile-bands.js" }}
 {{ include "scripts/current-rate-tiers.js" }}
+{{ include "scripts/locality-inference.js" }}
 {{ include "scripts/ctms-vs-series-2210.js" }}
 {{ include "scripts/flow-diverging-bars.js" }}
 {{ include "scripts/separation-reasons.js" }}
@@ -90,10 +101,14 @@
 {{ include "scripts/cohort-table.js" }}
 {{ include "scripts/prior-federal-service-hired-vs-joined-ctms.js" }}
 {{ include "scripts/subelement-comparison.js" }}
+{{ include "scripts/component-series-monitor.js" }}
 {{ include "scripts/retention-factors.js" }}
 {{ include "scripts/duty-station-education-age-bar-lists.js" }}
 {{ include "scripts/tabs.js" }}
 {{ include "scripts/people-table-sortable-filterable.js" }}
 {{ include "scripts/person-detail-modal.js" }}
 {{ include "scripts/raise-year-explorer.js" }}
+{{ include "scripts/pay-compression-scatter.js" }}
+{{ include "scripts/validation-status.js" }}
+{{ include "scripts/accountability-dynamic.js" }}
 </script>

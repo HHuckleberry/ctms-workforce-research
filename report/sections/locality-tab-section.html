@@ -1,0 +1,42 @@
+  <section id="locality-intro">
+    <div class="section-head">
+      <h2>Where the CTMS workforce is located</h2>
+      <p class="section-sub">This view stays with fields directly reported by OPM: locality pay area, current headcount, pay plan, and annualized adjusted basic pay. It does not infer or assign a CTMS local-market supplement.</p>
+    </div>
+    <div class="chart-card" id="locality-headline"></div>
+  </section>
+
+  <section id="locality-current">
+    <div class="section-head">
+      <h2>Current workforce by OPM locality pay area</h2>
+      <p class="section-sub">Median pay is descriptive, not a measured locality effect. Localities can differ in rate-tier, role, seniority, and component mix, and OPM's public extract does not separately identify a CTMS-specific local market adjustment or percentage.</p>
+    </div>
+    <div class="chart-card table-scroll">
+      <table class="decrease-table">
+        <thead><tr><th>OPM locality pay area</th><th style="text-align:right">Active</th><th style="text-align:right">Share</th><th style="text-align:right">DC</th><th style="text-align:right">DL</th><th style="text-align:right">Median adjusted basic pay</th><th style="text-align:right">Historical person-months</th></tr></thead>
+        <tbody id="locality-current-tbody"></tbody>
+      </table>
+    </div>
+    <div class="chart-foot" id="locality-current-foot"></div>
+  </section>
+
+  <section id="locality-tier-ranges">
+    <div class="section-head">
+      <h2>Observed pay floor and ceiling per rate tier, by area</h2>
+      <p class="section-sub">The minimum, median, and maximum <code>annualized_adjusted_basic_pay</code> actually observed within each RATE tier, split DC-metro vs. everywhere else &mdash; the one geographic grouping with enough people per tier to read (every individual locality besides DC-metro is too thin on its own, even across the full 2022&ndash;2026 history). This is a fact about what was observed, not a computed supplement percentage: no adjustment is inferred or subtracted out. DC pay plan only &mdash; DL's per-tier counts outside DC-metro are too small to include. Computed across every monthly observation, not just the latest snapshot.</p>
+    </div>
+    <div class="chart-card table-scroll">
+      <table class="decrease-table">
+        <thead><tr><th>Tier</th><th style="text-align:right">DC-metro min</th><th style="text-align:right">DC-metro median</th><th style="text-align:right">DC-metro max</th><th style="text-align:right">Elsewhere min</th><th style="text-align:right">Elsewhere median</th><th style="text-align:right">Elsewhere max</th></tr></thead>
+        <tbody id="locality-tier-ranges-tbody"></tbody>
+      </table>
+    </div>
+    <div class="chart-foot" id="locality-tier-ranges-foot"></div>
+  </section>
+
+  <section id="locality-limits">
+    <div class="chart-card">
+      <h3 style="font-size:14px;margin:0 0 8px;">What this report does not claim</h3>
+      <p>Observed salary differences are not labeled as locality supplements. The public OPM fields used here do not isolate whether, or by how much, a CTMS-specific talent-market adjustment contributed to an individual's reported annualized adjusted basic pay. A defensible estimate would require a publicly citable schedule or an employee-level field that separates the adjustment from other pay determinants.</p>
+    </div>
+  </section>

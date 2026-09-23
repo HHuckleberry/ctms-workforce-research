@@ -308,7 +308,7 @@ def build_people_and_events(df):
             "became_supervisor": became_supervisor,
             "got_any_raise": got_raise,
             "num_raise_events": len(raises),
-            "still_present_jul_2026": still_present,
+            "still_present_latest": still_present,
             "how_left": how_left,
             "agency_subelement": first["agency_subelement_code"],
             "agency_subelement_name": first["agency_subelement"],

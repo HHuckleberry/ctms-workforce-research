@@ -54,10 +54,8 @@
     hit.addEventListener('mouseleave', ()=> tip.classList.remove('show'));
   });
 
-  const spikeIdx = [months.indexOf('2025-09'), months.indexOf('2025-10')].filter(i=>i>=0);
-  const spikeTotal = spikeIdx.reduce((s,i)=>s+sep[i],0);
-  const allSep = sep.reduce((s,v)=>s+v,0);
-  document.getElementById('flow-foot').textContent =
-    'Sep–Oct 2025: ' + spikeTotal + ' departures in two months — ' + Math.round(spikeTotal/allSep*100) + '% of everyone who left across ' + n + ' months of history.';
+  const event = DATA.major_exit_event;
+  document.getElementById('flow-foot').textContent = event
+    ? fmtMonth(event.start)+'–'+fmtMonth(event.end)+': '+event.departures+' departures in the largest two-month separation window — '+event.share_of_all_departures_pct.toFixed(1)+'% of everyone who left across '+n+' months of history.'
+    : 'No two-month exit window is available.';
 })();
-

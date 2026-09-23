@@ -10,13 +10,13 @@ What this does:
     2. Installs the three dependencies into it (requests, pandas, pyarrow)
     3. Runs the pipeline, in order:
          pull/opm_ctms_pull.py          pulls raw OPM data since CTMS's actual
-                                         inception (June 2022) - ~150 monthly
-                                         snapshot downloads from data.opm.gov
-         pull/ctms_vs_2210.py           pulls the comparison series (2210) at
-                                         the same components, for the report's
-                                         "vs. the standard track" chart
+                                         inception (June 2022) and calculates
+                                         a same-component 2210 comparison in
+                                         the same employment download pass
          pull/ctms_track_individuals.py reconstructs individual timelines from
                                          the de-identified monthly snapshots
+         pull/ctms_validate.py          validates cached and derived outputs,
+                                         producing a refresh audit
          pull/ctms_report_data.py       builds the consolidated JSON the report
                                          reads
     4. Injects that JSON into report/template.html and writes
@@ -44,7 +44,7 @@ VENV_DIR = ROOT / ".venv"
 PULL_DIR = ROOT / "pull"
 REPORT_DIR = ROOT / "report"
 
-PIPELINE = ["opm_ctms_pull.py", "ctms_vs_2210.py", "ctms_track_individuals.py", "ctms_report_data.py"]
+PIPELINE = ["opm_ctms_pull.py", "ctms_track_individuals.py", "ctms_validate.py", "ctms_report_data.py"]
 
 
 def venv_python() -> Path:
@@ -151,8 +151,7 @@ def main():
         ensure_deps()
         pull_args = ("--full-refresh",) if args.full_refresh else ()
         run_pipeline_script("opm_ctms_pull.py", *pull_args)
-        run_pipeline_script("ctms_vs_2210.py", *pull_args)
-        for script in PIPELINE[2:]:
+        for script in PIPELINE[1:]:
             run_pipeline_script(script)
     out_path = build_report()
     if args.no_open:

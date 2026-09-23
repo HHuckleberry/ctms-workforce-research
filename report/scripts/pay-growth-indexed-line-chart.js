@@ -37,11 +37,6 @@
     if (febIdx<0) return;
     svg.appendChild(svgEl('circle',{cx:x(febIdx),cy:y(dcIdx[febIdx]),r:3,fill:colorDC}));
     svg.appendChild(svgEl('circle',{cx:x(febIdx),cy:y(dlIdx[febIdx]),r:3,fill:colorDL}));
-    if (yr === '2026') {
-      const shutdownLbl = svgEl('text',{x:x(febIdx),y:y(Math.max(dcIdx[febIdx],dlIdx[febIdx]))-10,'text-anchor':'middle','font-size':9.5,fill:colorOut,'font-family':'IBM Plex Mono, monospace','font-weight':600});
-      shutdownLbl.textContent = 'shutdown-delayed raise';
-      svg.appendChild(shutdownLbl);
-    }
   });
 
   monthLabelIndices(n,autoStep(n,9)).forEach(i=>{
@@ -72,8 +67,11 @@
   document.getElementById('dc-dollar-move').textContent = fmtDollar(dcM[0]) + ' → ' + fmtDollar(dcM[n-1]);
   document.getElementById('dl-dollar-move').textContent = fmtDollar(dlM[0]) + ' → ' + fmtDollar(dlM[n-1]);
   document.getElementById('pay-heading').textContent = 'Pay growth, indexed to ' + fmtMonth(months[0]);
+  document.getElementById('pay-baseline-foot').textContent =
+    'Index 100 = each plan’s own '+fmtMonth(months[0])+' median (DC '+fmtDollar(dcM[0])+', DL '+fmtDollar(dlM[0])+'). The chart starts when total CTMS headcount first reaches '+(DATA.salary.stability_threshold || DATA.methodology_settings.stability_threshold)+' people.';
 
   const janWrap = document.getElementById('jan-boundaries');
+  document.getElementById('jan-boundary-label').textContent = DATA.jan_boundaries.length + ' January adjustment ' + (DATA.jan_boundaries.length === 1 ? 'boundary' : 'boundaries');
   DATA.jan_boundaries.forEach(jb=>{
     const dcPct = (jb.dc_after-jb.dc_before)/jb.dc_before*100;
     const dlPct = (jb.dl_after-jb.dl_before)/jb.dl_before*100;
@@ -83,4 +81,3 @@
     janWrap.appendChild(row);
   });
 })();
-

@@ -18,16 +18,21 @@ That's it. This one command:
 1. Creates a local virtual environment (`.venv/`)
 2. Installs the three dependencies it needs (`requests`, `pandas`, `pyarrow`)
 3. Pulls CTMS workforce data from OPM going back to the program's actual
-   inception (June 2022) — roughly 150 monthly snapshot downloads
+   inception (June 2022), calculating the same-component 2210 comparison
+   during the same employment download pass
 4. Reconstructs individual employee timelines from the de-identified data
    (OPM's public data has no employee ID — see [Methodology](#methodology))
-5. Builds the report and opens it in your browser
+5. Validates population rules, version state, reconstructed histories, and
+   comparison totals; failed checks stop the build
+6. Builds the report and opens it in your browser
 
 The first pull takes **15–20 minutes** on a normal connection. Later runs are
-incremental: they read `pull/pull_manifest.txt`, download only months OPM has
-published since the last successful pull, and rebuild the report from the
-cached local CSVs. A typical monthly update therefore downloads one new month
-per dataset instead of the full history.
+incremental: they record the OPM version used for every month, download only
+new or revised snapshots, and rebuild the report from the cached local CSVs.
+A typical monthly update therefore downloads one new month per dataset instead
+of the full history. Revised snapshots replace their prior rows rather than
+being appended, and output files are written atomically so an interrupted run
+can be rerun safely without duplicating a month.
 
 For an unattended scheduled run, use:
 
@@ -35,8 +40,9 @@ For an unattended scheduled run, use:
 python3 run.py --no-open
 ```
 
-Use `python3 run.py --full-refresh` only when you intentionally want to
-re-download every historical month, such as when OPM revises older snapshots.
+Use `python3 run.py --full-refresh` when you intentionally want to rebuild the
+entire historical baseline, such as after changing the CTMS population rule.
+Routine runs detect OPM revisions automatically.
 
 The production population is pay plan `DC` or `DL` intersected with the
 DHS-only cybersecurity series family: `2212`, `2213`, `2218`, `2221`, `2224`,
@@ -56,13 +62,19 @@ with:
   underlying people, and from any person to their full trajectory
   (salary history chart + event timeline)
 - Comparison against the standard federal IT-management track (series 2210)
-  at the same components
+  inside the same fixed set of components that use CTMS, calculated without a
+  second employment download
+- Component-adoption and occupational-series monitoring, including a review
+  flag for any DHS DC/DL series outside the current population rule
+- A refresh-validation summary reconciling raw counts, reconstructed histories,
+  comparison totals, schemas, and OPM snapshot versions
 - Pay-plan-by-component (subelement) and pay-spread breakdowns
 - Retention factors — prior federal experience, relocation, veteran status,
   tenure-group mix over time, and time-to-promotion, each checked against
   the data rather than assumed
-- Total payroll actually disbursed since inception, computed directly from
-  the pulled data
+- Estimated salary represented by observed CTMS tenure: one-twelfth of each
+  observed person-month's annualized adjusted basic pay. This is an evidence-
+  based estimate from OPM snapshots, not a payroll-ledger total.
 - Sourced findings from GAO, DHS's Inspector General, and congressional
   testimony, cross-checked against the OPM data wherever they overlap
 - A search box, sortable/filterable table with per-person sparklines, and
@@ -80,7 +92,8 @@ requirements.txt
 pull/
   opm_ctms_pull.py              step 1: pull raw data from data.opm.gov
   ctms_track_individuals.py     step 2: reconstruct individual timelines
-  ctms_report_data.py           step 3: build the consolidated report JSON
+  ctms_validate.py              step 3: validate and reconcile pipeline outputs
+  ctms_report_data.py           step 4: build the consolidated report JSON
 report/
   template.html                short shell defining layout and include order
   sections/                    HTML sections (people table, methodology, etc.)
