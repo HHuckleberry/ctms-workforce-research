@@ -40,6 +40,22 @@ For an unattended scheduled run, use:
 python3 run.py --no-open
 ```
 
+## Public report
+
+The current interactive report is published with GitHub Pages at:
+
+<https://hhuckleberry.github.io/ctms-workforce-research/>
+
+After a monthly update, publish the newly generated report with:
+
+```bash
+python3 run.py --no-open
+python3 publish.py
+```
+
+`publish.py` sends only the generated standalone HTML file to the dedicated
+`gh-pages` branch. Generated data remains ignored on the source branch.
+
 Use `python3 run.py --full-refresh` when you intentionally want to rebuild the
 entire historical baseline, such as after changing the CTMS population rule.
 Routine runs detect OPM revisions automatically.
