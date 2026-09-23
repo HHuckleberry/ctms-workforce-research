@@ -44,7 +44,7 @@ def main():
 
         fetched = run(
             "git", "fetch", "--quiet", "origin", "gh-pages",
-            cwd=work, check=False,
+            cwd=work, check=False, capture=True,
         )
         if fetched.returncode == 0:
             run("git", "checkout", "--quiet", "-B", "gh-pages", "FETCH_HEAD", cwd=work)
