@@ -1,0 +1,35 @@
+  <section id="individuals-section">
+      <div class="section-head">
+        <h2>All tracked individuals</h2>
+        <p class="section-sub">Every reconstructed individual (see methodology for how these are built from de-identified records), ranked by onboarding order by default. Click a column to sort, click any row to see that person's full story. Numbers throughout the Overview and Pay Raises tabs are clickable too &mdash; they drop you here, pre-filtered. A red <span style="color:var(--accent-out)">&#9679;</span> marks a lower-confidence reconstructed timeline (see methodology).</p>
+      </div>
+      <div class="table-toolbar">
+        <input type="text" id="people-search" class="search-input" placeholder="Search duty station, subelement, cohort, education, plan, separation reason&hellip;">
+        <span class="filter-count" id="people-result-count"></span>
+        <button type="button" class="export-btn" id="export-csv-btn">Export CSV</button>
+      </div>
+      <div class="filter-bar" id="filter-bar"></div>
+      <div class="chart-card table-scroll">
+        <table class="decrease-table people-table" id="people-table">
+          <thead>
+            <tr>
+              <th data-key="rank" data-type="num">#</th>
+              <th data-key="joined" data-type="str" class="sort-active" data-dir="asc">First observed</th>
+              <th data-key="cohort" data-type="str">Cohort</th>
+              <th data-key="duty_station" data-type="str">Duty Station</th>
+              <th data-key="subelement" data-type="str">Sub</th>
+              <th data-key="prior_years" data-type="num" style="text-align:right">Prior Svc</th>
+              <th data-key="plan" data-type="str">Plan</th>
+              <th data-key="start_salary" data-type="num" style="text-align:right">Start $</th>
+              <th data-key="end_salary" data-type="num" style="text-align:right">End $</th>
+              <th data-key="pct_change" data-type="num" style="text-align:right">Change</th>
+              <th style="text-align:center">Trend</th>
+              <th data-key="status_sort" data-type="str">Status</th>
+              <th data-key="notes" data-type="str">Notes</th>
+            </tr>
+          </thead>
+          <tbody id="people-tbody"></tbody>
+        </table>
+      </div>
+      <div class="chart-foot">"Redacted" duty stations/salaries are OPM's own privacy suppression for small cells, not missing data on our end.</div>
+    </section>

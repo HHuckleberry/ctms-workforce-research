@@ -1,0 +1,99 @@
+<title>CTMS Workforce Trajectory</title>
+<style>
+{{ include "styles/report.css" }}
+</style>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<div class="wrap">
+
+  <header class="report-head">
+    <div class="eyebrow">DHS Cybersecurity Service &middot; Workforce Analysis</div>
+    <h1>CTMS Workforce Trajectory</h1>
+    <p class="dek">Population, pay, and individual career paths inside the Cybersecurity Talent Management System (pay plans DC/DL in DHS-only cybersecurity occupational series &mdash; positions paid under 6&nbsp;U.S.C.&nbsp;658), rebuilt fresh from OPM's public workforce data.</p>
+    <span class="coverage-badge"><span class="dot"></span><span id="coverage-text">loading coverage&hellip;</span></span>
+    <button type="button" class="export-btn" id="print-btn" style="margin-left:10px;">Print / Save PDF</button>
+  </header>
+
+  <div class="tab-nav" role="tablist">
+    <button class="tab-btn active" id="tabbtn-overview" role="tab" aria-selected="true" aria-controls="tab-overview">Overview</button>
+    <button class="tab-btn" id="tabbtn-raises" role="tab" aria-selected="false" aria-controls="tab-raises">Pay Raises by Year</button>
+    <button class="tab-btn" id="tabbtn-individuals" role="tab" aria-selected="false" aria-controls="tab-individuals">All Individuals <span id="tab-individuals-count" class="tab-count"></span></button>
+  </div>
+
+  <div id="tab-overview" role="tabpanel">
+
+{{ include "sections/hero-stats.html" }}
+
+{{ include "sections/headcount-section.html" }}
+
+{{ include "sections/vs2210-section.html" }}
+
+{{ include "sections/pay-section.html" }}
+
+{{ include "sections/spread-section.html" }}
+
+{{ include "sections/rate-tier-section.html" }}
+
+{{ include "sections/flow-section.html" }}
+
+{{ include "sections/cohorts-section.html" }}
+
+{{ include "sections/prior-service-section.html" }}
+
+{{ include "sections/subelement-section.html" }}
+
+{{ include "sections/retention-factors-section.html" }}
+
+{{ include "sections/reasons-section.html" }}
+
+{{ include "sections/trajectories-section.html" }}
+
+{{ include "sections/decrease-section.html" }}
+
+{{ include "sections/composition-section.html" }}
+
+{{ include "sections/accountability-section.html" }}
+
+  </div>
+
+  <div id="tab-raises" role="tabpanel" hidden>
+  {{ include "sections/raises-section.html" }}
+  </div>
+
+  <div id="tab-individuals" role="tabpanel" hidden>
+  {{ include "sections/individuals-section.html" }}
+  </div>
+
+  <div class="modal-overlay" id="person-modal" hidden>
+    <div class="modal-card" id="person-modal-card"></div>
+  </div>
+
+{{ include "sections/methodology.html" }}
+
+</div>
+
+<script>
+{{ include "scripts/format.js" }}
+{{ include "scripts/hero-stats.js" }}
+{{ include "scripts/shared-chart-helpers.js" }}
+{{ include "scripts/headcount-stacked-area.js" }}
+{{ include "scripts/pay-growth-indexed-line-chart.js" }}
+{{ include "scripts/pay-spread-percentile-bands.js" }}
+{{ include "scripts/current-rate-tiers.js" }}
+{{ include "scripts/ctms-vs-series-2210.js" }}
+{{ include "scripts/flow-diverging-bars.js" }}
+{{ include "scripts/separation-reasons.js" }}
+{{ include "scripts/supervisory-line.js" }}
+{{ include "scripts/trajectory-cards.js" }}
+{{ include "scripts/decrease-table.js" }}
+{{ include "scripts/cohort-table.js" }}
+{{ include "scripts/prior-federal-service-hired-vs-joined-ctms.js" }}
+{{ include "scripts/subelement-comparison.js" }}
+{{ include "scripts/retention-factors.js" }}
+{{ include "scripts/duty-station-education-age-bar-lists.js" }}
+{{ include "scripts/tabs.js" }}
+{{ include "scripts/people-table-sortable-filterable.js" }}
+{{ include "scripts/person-detail-modal.js" }}
+{{ include "scripts/raise-year-explorer.js" }}
+</script>

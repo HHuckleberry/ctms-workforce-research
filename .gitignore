@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Generated pipeline outputs - regenerated fresh by run.py each time
+pull/*.csv
+pull/*.json
+pull/ctms_schema.txt
+pull/pull_manifest.txt
+report/ctms_workforce_report.html
