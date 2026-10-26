@@ -34,6 +34,17 @@ PRIOR_SERVICE_BUCKET_ORDER = ["New to federal service", "0.5–3 yrs prior servi
                               "8–15 yrs prior service", "15+ yrs prior service"]
 CTMS_SERIES = {"2212", "2213", "2218", "2221", "2224", "2225", "2226", "2228", "2229", "2230"}
 STABILITY_THRESHOLD = 20
+# The vs-2210 chart indexes both series to percent-change-from-baseline, which
+# is far more sensitive to a small denominator than a median or a ratio is -
+# STABILITY_THRESHOLD=20 (chosen for those) still lands on a month deep in
+# CTMS's initial ramp (29 people, Nov '22), where the population nearly
+# doubles or triples month to month - any growth there reads as a wild
+# percentage purely from the tiny base, not a real trend. CTMS's headcount
+# growth visibly levels off once it crosses 100 (99 -> 101 -> 104 in
+# Apr-Jun '23, versus 29 -> 53 -> 70 a few months earlier), so this baseline
+# is scoped separately rather than changing STABILITY_THRESHOLD for every
+# other chart that already uses it.
+VS_2210_STABILITY_THRESHOLD = 100
 COMPONENT_NEAR_PEAK_RATIO = 0.90
 COMPONENT_CONTRACTED_RATIO = 0.60
 
@@ -743,13 +754,15 @@ def main():
     vs_2210 = None
     vs_2210_path = os.path.join(OUT, "ctms_vs_2210.csv")
     if os.path.exists(vs_2210_path):
+        vs2210_start_i = next((i for i, v in enumerate(headcount_series["total"]) if v >= VS_2210_STABILITY_THRESHOLD), 0)
+        vs2210_stable_months = months[vs2210_start_i:]
         cmp_df = pd.read_csv(vs_2210_path).set_index("snapshot")
         component_codes = []
         if "component_codes" in cmp_df and len(cmp_df):
             scope_values = cmp_df["component_codes"].dropna()
             if len(scope_values):
                 component_codes = [c for c in str(scope_values.iloc[0]).split(",") if c]
-        cmp_df = cmp_df.reindex(stable_months).dropna(subset=["ctms_total", "series_2210"])
+        cmp_df = cmp_df.reindex(vs2210_stable_months).dropna(subset=["ctms_total", "series_2210"])
         cmp_months = cmp_df.index.tolist()
         ctms_col = "ctms_total" if "ctms_total" in cmp_df else "ctms_2230"
         ctms_peak_m = cmp_df[ctms_col].idxmax()
@@ -798,6 +811,7 @@ def main():
             "ctms_change_pct": [pct_change(cmp_df[ctms_col].iloc[0], v) for v in cmp_df[ctms_col]],
             "series_2210_change_pct": [pct_change(cmp_df["series_2210"].iloc[0], v) for v in cmp_df["series_2210"]],
             "baseline_month": cmp_months[0],
+            "stability_threshold": VS_2210_STABILITY_THRESHOLD,
             "components": [{"code": code, "name": SUBELEMENT_NAMES.get(code, code)} for code in component_codes],
             "ctms_start_to_now_pct": pct_change(cmp_df[ctms_col].iloc[0], ctms_now),
             "it_start_to_now_pct": pct_change(cmp_df["series_2210"].iloc[0], it_now),
