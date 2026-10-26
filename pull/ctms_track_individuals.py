@@ -306,6 +306,13 @@ def build_people_and_events(df):
                                   if pd.notna(first["salary_num"]) and first["salary_num"] else None,
             "promoted_dc_to_dl": promoted,
             "became_supervisor": became_supervisor,
+            # became_supervisor only fires on an *observed* False->True
+            # transition within the tracked window - someone already a
+            # supervisor the first month we see them (common for DL hires)
+            # shows no transition, so became_supervisor=False even though
+            # they ARE one. This is the actual current-status field; use it
+            # for any "is this person a supervisor" question, not the event flag.
+            "is_supervisor_now": bool(last["is_supervisor"]),
             "got_any_raise": got_raise,
             "num_raise_events": len(raises),
             "still_present_latest": still_present,
@@ -358,6 +365,7 @@ def main():
         "people_with_gap_in_timeline": int(people["has_gap"].sum()),
         "promoted_dc_to_dl": int(people["promoted_dc_to_dl"].sum()),
         "became_supervisor": int(people["became_supervisor"].sum()),
+        "currently_supervisor": int(people["is_supervisor_now"].sum()),
         "got_any_raise": int(people["got_any_raise"].sum()),
         "median_salary_change_pct_multi_month": float(
             people.loc[people["months_tracked"] > 1, "salary_change_pct"].median()

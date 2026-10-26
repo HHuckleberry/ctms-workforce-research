@@ -14,6 +14,7 @@
     { label: 'Got at least one raise', value: s.got_any_raise + ' / ' + s.total_tracked_individuals, delta: Math.round(s.got_any_raise/s.total_tracked_individuals*100) + '%', up: true },
     { label: 'Promoted, DC → DL', value: s.promoted_dc_to_dl, delta: null },
     { label: 'Became a supervisor/manager', value: s.became_supervisor, delta: null },
+    { label: 'Currently a supervisor/manager', value: s.currently_supervisor, delta: null },
   ];
   const grid = document.getElementById('stat-grid');
   stats.forEach(st => {

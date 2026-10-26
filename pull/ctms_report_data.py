@@ -706,7 +706,16 @@ def main():
             "end_salary": None if pd.isna(r["end_salary"]) else round(r["end_salary"]),
             "pct_change": None if pd.isna(r["salary_change_pct"]) else round(r["salary_change_pct"], 1),
             "promoted": bool(r["promoted_dc_to_dl"]),
-            "supervisor": bool(r["became_supervisor"]),
+            # Two distinct facts, deliberately not collapsed into one
+            # "supervisor" field: became_supervisor is an *event* (did we
+            # observe a False->True transition during tracking), while
+            # is_supervisor_now is their *current* status as of the latest
+            # snapshot. Someone already a supervisor the first month we saw
+            # them (common for DL hires) has became_supervisor=False despite
+            # being one right now - verified directly against raw OPM data
+            # for this exact population before fixing.
+            "became_supervisor": bool(r["became_supervisor"]),
+            "is_supervisor_now": bool(r["is_supervisor_now"]),
             "active": bool(r["still_present_latest"]),
             "tenure_months": int(r["span_months"]),
             "has_gap": bool(r["has_gap"]),

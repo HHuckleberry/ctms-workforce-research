@@ -6,7 +6,7 @@ const PeopleTable = (function(){
     plan: p.start_plan === p.end_plan ? p.start_plan : (p.start_plan + ' → ' + p.end_plan),
     status_sort: p.active ? '0' : '1-' + (p.last_seen||''),
     status_label: p.active ? 'Active' : ('Left ' + fmtMonth(p.last_seen)),
-    notes_sort: (p.promoted?'0':'1') + (p.supervisor?'0':'1'),
+    notes_sort: (p.promoted?'0':'1') + (p.is_supervisor_now?'0':'1'),
   }));
 
   let sortKey = 'joined', sortType = 'str', sortDir = 'asc';
@@ -124,7 +124,7 @@ const PeopleTable = (function(){
     const tbody = document.getElementById('people-tbody');
     tbody.innerHTML = sorted.map(r => {
       const badges = (r.promoted ? '<span class="mini-badge promoted">Promoted</span>' : '') +
-                     (r.supervisor ? '<span class="mini-badge supervisor">Supervisor</span>' : '');
+                     (r.is_supervisor_now ? '<span class="mini-badge supervisor">Supervisor</span>' : '');
       const statusClass = r.active ? 'status-active' : 'status-left';
       const gapFlag = r.has_gap ? '<span title="This person\'s reconstructed timeline has a gap - a lower-confidence linkage. See methodology." style="color:var(--accent-out); cursor:help; margin-left:4px;">●</span>' : '';
       return '<tr data-id="'+r.id.replace(/"/g,'&quot;')+'">' +

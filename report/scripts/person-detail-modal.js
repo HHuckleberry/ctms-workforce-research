@@ -78,8 +78,13 @@ const PersonModal = (function(){
     const history = DATA.person_history[pid] || [];
     const events = DATA.person_events[pid] || [];
 
+    // "Became supervisor" is the more informative badge when we actually
+    // observed that transition; otherwise fall back to a plain "Supervisor"
+    // badge for someone who simply already held the role when first
+    // observed (no transition to detect, but still a supervisor now).
+    const supervisorBadge = person.became_supervisor ? 'Became supervisor' : (person.is_supervisor_now ? 'Supervisor' : null);
     const badges = (person.promoted ? '<span class="mini-badge promoted">Promoted DC→DL</span>' : '') +
-                   (person.supervisor ? '<span class="mini-badge supervisor">Became supervisor</span>' : '');
+                   (supervisorBadge ? '<span class="mini-badge supervisor">'+supervisorBadge+'</span>' : '');
     const totalFedSvc = person.prior_years != null ? Math.round((person.prior_years + person.tenure_months / 12) * 10) / 10 : null;
 
     const startRow = person.start_salary != null
