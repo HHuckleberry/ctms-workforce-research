@@ -30,9 +30,11 @@ derived outputs from the cached local extracts. Pass --full-refresh to
 intentionally replace the cache with a complete historical re-pull.
 """
 import argparse
+import csv
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import venv
@@ -108,10 +110,43 @@ def assemble_template() -> str:
     return expand(root / "template.html")
 
 
+# Published beside the report as report/data/ (gitignored; publish.py ships it
+# to gh-pages). Order is the order shown on the download list.
+DOWNLOADS = [
+    ("ctms_person_months.csv", "Every OPM field for every CTMS person-month, with the reconstructed person_id"),
+    ("ctms_people.csv", "One row per reconstructed individual: start/end pay, plan, tier, status, promotions"),
+    ("ctms_events.csv", "Detected pay, rate-tier, pay-plan, supervisor, and relocation events"),
+    ("ctms_accessions.csv", "OPM accession records for this population: who joined, and how"),
+    ("ctms_separations.csv", "OPM separation records for this population: who left, and why"),
+    ("pull_manifest.txt", "Which OPM snapshot versions these files were built from"),
+]
+
+
+def copy_downloads() -> list:
+    out_dir = REPORT_DIR / "data"
+    out_dir.mkdir(exist_ok=True)
+    listed = []
+    for name, desc in DOWNLOADS:
+        src = PULL_DIR / name
+        if not src.exists():
+            print(f"  (skipping {name}: not found - run the full pipeline to create it)")
+            continue
+        shutil.copy2(src, out_dir / name)
+        entry = {"file": name, "description": desc, "bytes": src.stat().st_size}
+        if name.endswith(".csv"):
+            with open(src, encoding="utf-8", newline="") as f:
+                reader = csv.reader(f)
+                entry["columns"] = len(next(reader, []))
+                entry["rows"] = sum(1 for _ in reader)
+        listed.append(entry)
+    return listed
+
+
 def build_report() -> Path:
     step("Building report/ctms_workforce_report.html ...")
     with open(PULL_DIR / "ctms_report_data.json", encoding="utf-8") as f:
         data = json.load(f)
+    data["downloads"] = copy_downloads()
     data_str = json.dumps(data)
     template = assemble_template()
     if "__DATA_JSON__" not in template:

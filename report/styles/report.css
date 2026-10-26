@@ -323,6 +323,10 @@
   .export-btn:hover { color: var(--text-primary); border-color: var(--accent-dc); }
   .export-btn:disabled { opacity: 0.5; cursor: default; }
   .header-link { display: inline-block; margin-left: 6px; text-decoration: none; }
+  .download-row { display: grid; grid-template-columns: minmax(200px, auto) 1fr; gap: 14px; align-items: center; padding: 8px 0; border-top: 1px solid var(--border); }
+  .download-row:first-child { border-top: none; }
+  .download-desc { font-size: 13px; color: var(--text-secondary); }
+  @media (max-width: 560px) { .download-row { grid-template-columns: 1fr; gap: 6px; } }
 
   .tag-filter-btn {
     font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;

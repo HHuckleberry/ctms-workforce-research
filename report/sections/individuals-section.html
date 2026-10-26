@@ -6,7 +6,7 @@
       <div class="table-toolbar">
         <input type="text" id="people-search" class="search-input" placeholder="Search duty station, subelement, cohort, education, plan, separation reason&hellip;">
         <span class="filter-count" id="people-result-count"></span>
-        <button type="button" class="export-btn" id="export-csv-btn">Export CSV</button>
+        <button type="button" class="export-btn" id="export-csv-btn" title="Download the rows currently shown, with every field the report carries per person">Export shown rows (CSV)</button>
       </div>
       <div class="table-toolbar" id="tag-filter-toolbar">
         <span style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">Filter by tag (combinable):</span>
@@ -43,4 +43,9 @@
         </table>
       </div>
       <div class="chart-foot">"Redacted" duty stations/salaries are OPM's own privacy suppression for small cells, not missing data on our end.</div>
+      <div class="chart-card" style="margin-top:20px;">
+        <h3 style="font-size:14px;margin:0 0 4px;">Download the full dataset</h3>
+        <p class="chart-foot" style="margin:0 0 12px;">The export button above saves what's on screen. These files are the complete underlying data, rebuilt with every refresh.</p>
+        <div class="downloads-list"></div>
+      </div>
     </section>

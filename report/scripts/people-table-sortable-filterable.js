@@ -197,23 +197,35 @@ const PeopleTable = (function(){
     btn.addEventListener('click', () => toggleTagFilter(field, value, btn.textContent));
   });
 
-  // CSV export via the artifact "downloads" capability - script-driven file
-  // saves are otherwise blocked in a published artifact, so this is the only
-  // working path for an in-page export button.
+  // Exports the rows currently shown (respects tag filters, drill-downs and
+  // search) with every field the report carries per person, not a subset.
+  // Inside a claude.ai artifact, script-driven saves only work through the
+  // "downloads" capability; everywhere else (GitHub Pages, local) a plain
+  // Blob download does the job.
   (async () => {
     const btn = document.getElementById('export-csv-btn');
     let cap = null;
     try {
       if (window.claude && typeof window.claude.use === 'function') cap = await window.claude.use('downloads');
     } catch (e) { cap = null; }
-    if (!cap) { btn.disabled = true; btn.title = 'Export isn’t available in this view'; return; }
+
+    const cols = raw.length ? Object.keys(raw[0]).concat(['plan', 'status_label']) : [];
+    const escape = v => { if (v==null) v=''; v=String(v).replace(/"/g,'""'); return /[",\n\r]/.test(v) ? '"'+v+'"' : v; };
+
     btn.addEventListener('click', async () => {
-      const cols = ['rank','joined','cohort','duty_station','latest_duty_station','subelement','prior_years','plan','start_salary','end_salary','pct_change','status_label','how_left'];
       const csvRows = filteredRows().slice().sort(cmp);
-      const escape = v => { if (v==null) v=''; v=String(v).replace(/"/g,'""'); return /[",\n]/.test(v) ? '"'+v+'"' : v; };
-      const csv = [cols.join(',')].concat(csvRows.map(r => cols.map(c=>escape(r[c])).join(','))).join('\n');
-      try { await cap.save({ filename: 'ctms_individuals' + (filter ? '_filtered' : '') + '.csv', data: csv }); }
-      catch (e) { /* viewer declined the save - nothing to do */ }
+      // BOM so Excel reads UTF-8 (otherwise "DC → DL" turns into mojibake).
+      const csv = '﻿' + [cols.join(',')].concat(csvRows.map(r => cols.map(c => escape(r[c])).join(','))).join('\r\n');
+      const filename = 'ctms_individuals' + (filter || searchText ? '_filtered' : '') + '.csv';
+      if (cap) {
+        try { await cap.save({ filename, data: csv }); } catch (e) { /* viewer declined the save */ }
+        return;
+      }
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     });
   })();
 

@@ -10,3 +10,6 @@ pull/pull_manifest.txt
 pull/ctms_validation.md
 report/ctms_workforce_report.html
 !pull/sources.json
+
+# Downloadable CSVs copied next to the built report - published to gh-pages only, never main
+report/data/

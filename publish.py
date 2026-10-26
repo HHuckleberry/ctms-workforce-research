@@ -3,7 +3,8 @@
 
 Run ``python3 run.py --no-open`` first so the ignored report artifact contains
 the latest OPM data, then run this script. The main branch remains source-only;
-the public branch contains just ``index.html`` and ``.nojekyll``.
+the public branch contains ``index.html``, ``.nojekyll``, and the downloadable
+CSVs under ``data/``.
 """
 
 import shutil
@@ -15,6 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 REPORT = ROOT / "report" / "ctms_workforce_report.html"
+DATA_DIR = ROOT / "report" / "data"
 
 
 def run(*args: str, cwd: Path, check: bool = True, capture: bool = False):
@@ -54,7 +56,13 @@ def main():
 
         shutil.copy2(REPORT, work / "index.html")
         (work / ".nojekyll").write_text("", encoding="utf-8")
-        run("git", "add", "index.html", ".nojekyll", cwd=work)
+        to_add = ["index.html", ".nojekyll"]
+        if DATA_DIR.is_dir() and any(DATA_DIR.iterdir()):
+            shutil.copytree(DATA_DIR, work / "data")
+            to_add.append("data")
+        else:
+            print("Warning: report/data/ is empty - the download links will 404. Run run.py first.")
+        run("git", "add", *to_add, cwd=work)
 
         unchanged = run("git", "diff", "--cached", "--quiet", cwd=work, check=False)
         if unchanged.returncode == 0:

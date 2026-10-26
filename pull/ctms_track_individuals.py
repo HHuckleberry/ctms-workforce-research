@@ -359,6 +359,16 @@ def main():
     history.to_csv(os.path.join(OUT, "ctms_person_history.csv"), index=False)
     print(f"wrote ctms_person_history.csv ({len(history)} rows)")
 
+    # The full public download: every raw OPM column, untouched and in OPM's
+    # order, plus the reconstructed person_id that links a person's months.
+    # Internal helpers (raw_key, salary_num, is_supervisor) are left out.
+    opm_cols = list(pd.read_csv(os.path.join(OUT, "ctms_full.csv"), nrows=0).columns)
+    person_months = df.sort_values(["person_id", "snapshot"])[["person_id"] + opm_cols]
+    n_raw = len(pd.read_csv(os.path.join(OUT, "ctms_full.csv"), usecols=[0], dtype=str))
+    assert len(person_months) == n_raw, f"person-months lost rows in linking: {len(person_months)} vs {n_raw} raw"
+    person_months.to_csv(os.path.join(OUT, "ctms_person_months.csv"), index=False)
+    print(f"wrote ctms_person_months.csv ({len(person_months)} rows, {len(person_months.columns)} cols)")
+
     summary = {
         "total_tracked_individuals": int(people["person_id"].nunique()),
         "raw_keys_before_linking": int(df["raw_key"].nunique()),
