@@ -82,5 +82,5 @@
       '<td class="num">'+(row.it_change_pct!=null?fmtPct(row.it_change_pct):'n/a')+'</td></tr>'
   ).join('') || '<tr><td colspan="7" style="color:var(--text-muted);">Run a full refresh to build component-level comparison history.</td></tr>';
   document.getElementById('vs2210-foot').textContent =
-    'Baseline is ' + fmtMonth(V.baseline_month || months[0]) + ': each line starts at 0%, so vertical distance is the difference in workforce growth or contraction—not the difference in raw program size. Components are held fixed across the full series. Trailing change: CTMS '+pctOrNA(V.ctms_12m_pct)+' over 12 months and '+pctOrNA(V.ctms_24m_pct)+' over 24 months; 2210 '+pctOrNA(V.it_12m_pct)+' and '+pctOrNA(V.it_24m_pct)+', respectively.';
+    'Both lines start from ' + fmtMonth(V.baseline_month || months[0]) + ' at 0%, so vertical distance is the difference in workforce growth or contraction—not the difference in raw program size. Components are held fixed across the full series. Trailing change: CTMS '+pctOrNA(V.ctms_12m_pct)+' over 12 months and '+pctOrNA(V.ctms_24m_pct)+' over 24 months; 2210 '+pctOrNA(V.it_12m_pct)+' and '+pctOrNA(V.it_24m_pct)+', respectively.';
 })();
