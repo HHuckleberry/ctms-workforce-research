@@ -9,3 +9,4 @@ pull/ctms_schema.txt
 pull/pull_manifest.txt
 pull/ctms_validation.md
 report/ctms_workforce_report.html
+!pull/sources.json

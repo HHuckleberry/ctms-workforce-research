@@ -8,6 +8,15 @@
         <span class="filter-count" id="people-result-count"></span>
         <button type="button" class="export-btn" id="export-csv-btn">Export CSV</button>
       </div>
+      <div class="table-toolbar" id="tag-filter-toolbar">
+        <span style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">Filter by tag:</span>
+        <button type="button" class="tag-filter-btn" data-field="supervisor" data-value="true">Supervisor</button>
+        <button type="button" class="tag-filter-btn" data-field="supervisor" data-value="false">Non-supervisor</button>
+        <button type="button" class="tag-filter-btn" data-field="promoted" data-value="true">Promoted</button>
+        <button type="button" class="tag-filter-btn" data-field="promoted" data-value="false">Not promoted</button>
+        <button type="button" class="tag-filter-btn" data-field="active" data-value="true">Active</button>
+        <button type="button" class="tag-filter-btn" data-field="active" data-value="false">Left</button>
+      </div>
       <div class="filter-bar" id="filter-bar"></div>
       <div class="chart-card table-scroll">
         <table class="decrease-table people-table" id="people-table">

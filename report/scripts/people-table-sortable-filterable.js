@@ -50,12 +50,33 @@ const PeopleTable = (function(){
 
   function renderFilterBar(){
     const bar = document.getElementById('filter-bar');
+    updateTagButtonStates();
     if (!filter) { bar.innerHTML = ''; return; }
     const n = filteredRows().length;
     bar.innerHTML =
       '<span class="filter-chip">'+filter.label+'<button type="button" id="clear-filter-btn">×</button></span>' +
       '<span class="filter-count">'+n+' '+(n===1?'person':'people')+'</span>';
     document.getElementById('clear-filter-btn').addEventListener('click', clearFilter);
+  }
+
+  // A tag-filter button is "active" only when it's the sole condition driving
+  // the current filter - a drill-down from elsewhere in the report (a chart,
+  // a modal) sets its own filter and should leave these showing inactive,
+  // not falsely highlighted.
+  function updateTagButtonStates(){
+    document.querySelectorAll('.tag-filter-btn').forEach(btn => {
+      const field = btn.dataset.field, value = btn.dataset.value === 'true';
+      const isActive = !!(filter && filter.conditions && filter.conditions.length === 1 &&
+        filter.conditions[0].field === field && filter.conditions[0].value === value);
+      btn.classList.toggle('active', isActive);
+    });
+  }
+
+  function toggleTagFilter(field, value, label){
+    const alreadyActive = filter && filter.conditions && filter.conditions.length === 1 &&
+      filter.conditions[0].field === field && filter.conditions[0].value === value;
+    if (alreadyActive) clearFilter();
+    else applyFilter(field, value, label);
   }
 
   function sparkline(pid, active){
@@ -144,6 +165,11 @@ const PeopleTable = (function(){
   });
 
   document.getElementById('people-search').addEventListener('input', (e) => setSearch(e.target.value));
+
+  document.querySelectorAll('.tag-filter-btn').forEach(btn => {
+    const field = btn.dataset.field, value = btn.dataset.value === 'true';
+    btn.addEventListener('click', () => toggleTagFilter(field, value, btn.textContent));
+  });
 
   // CSV export via the artifact "downloads" capability - script-driven file
   // saves are otherwise blocked in a published artifact, so this is the only

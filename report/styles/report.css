@@ -60,7 +60,7 @@
       color-scheme: light;
     }
     body { background: #fff; }
-    .tab-nav, .filter-bar, .search-input, .export-btn, #print-btn, .tooltip, .modal-overlay,
+    .tab-nav, .filter-bar, .search-input, .export-btn, #tag-filter-toolbar, #print-btn, .tooltip, .modal-overlay,
     .coverage-badge .dot { display: none !important; }
     #tab-overview, #tab-raises, #tab-locality, #tab-individuals { display: block !important; }
     .chart-card, .stat-tile, .traj-card, .raise-year-card, section { break-inside: avoid; }
@@ -322,6 +322,17 @@
   }
   .export-btn:hover { color: var(--text-primary); border-color: var(--accent-dc); }
   .export-btn:disabled { opacity: 0.5; cursor: default; }
+
+  .tag-filter-btn {
+    font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 100px;
+    color: var(--text-secondary); padding: 5px 12px; flex: none; transition: all 0.1s ease;
+  }
+  .tag-filter-btn:hover { color: var(--text-primary); border-color: var(--accent-dc); }
+  .tag-filter-btn.active {
+    background: color-mix(in srgb, var(--accent-dc) 14%, transparent);
+    color: var(--accent-dc); border-color: color-mix(in srgb, var(--accent-dc) 45%, transparent);
+  }
 
   /* clickable drill-down affordance */
   .drillable { cursor: pointer; transition: opacity 0.12s ease; }

@@ -1,0 +1,77 @@
+{
+  "_note": "External sources cited in the report. Edit this file to add or change a card; no HTML edits needed. 'context' and 'detail' may use {metric} placeholders resolved from the OPM data at build time. 'html' fields are trusted local markup. 'status': primary = checked against the original document; secondary = traced via press reporting; unverified = cited by others, no primary text found.",
+  "sources": [
+    {
+      "id": "oig-jan-2026",
+      "label": "DHS OIG, Jan 2026",
+      "status": "secondary",
+      "published": "2026-01-29",
+      "html": "CTMS \"has not met its original goal to help recruit thousands of cyber experts,\" with only <b>several hundred</b> hired since 2021 launch &mdash; against an original estimate of <b>2,000 hires</b>.",
+      "context": "The OPM series in this report peaks at {peak_headcount} people in {peak_month_label}.",
+      "link": {"text": "FEDagent, Jan 29 2026", "url": "https://www.fedagent.com/news/dhs-hiring-practices-undermine-law-enforcement-staffing-surge-report"},
+      "check": {
+        "claim": "Hiring fell short of the 2,000-hire estimate (\"several hundred\")",
+        "metric": "total_accessions",
+        "metric_label": "DC/DL accessions observed since {first_month_label}",
+        "claim_value": 2000,
+        "verdict": "below_claim",
+        "note": "OPM counts only the cyber-series DC/DL population defined in this report; the OIG figure may use a broader definition."
+      }
+    },
+    {
+      "id": "hysen-2024",
+      "label": "Hysen testimony, Jun 26 2024",
+      "status": "primary",
+      "published": "2024-06-26",
+      "html": "DHS CIO, House Homeland Security Committee: <i>\"We are pushing to aggressively expand CTMS.\"</i> Also: <i>\"our initial rate of hires have not met our aggressive targets.\"</i>",
+      "context": "The OPM series peaks {peak_timing_vs_testimony}, then changes {peak_to_latest_pct_label} from that peak through {last_month_label}.",
+      "link": {"text": "Primary source: full testimony PDF", "url": "https://homeland.house.gov/wp-content/uploads/2024/06/2024-06-26-HRG-Testimony.pdf"}
+    },
+    {
+      "id": "appropriations",
+      "label": "Appropriations",
+      "status": "secondary",
+      "published": "2024-06-01",
+      "html": "$49M (FY16&ndash;20) design/build funding, plus $93.2M enacted Mar 15, 2022 (Consolidated Appropriations Act, 2022) to launch hiring for 65 positions. A House Homeland Security member has separately referenced Congress <b>rescinding ~$53M</b> over slow CISA hiring.",
+      "caveat": "The rescission's date and citation are not yet pinned to primary text.",
+      "unverified_claims": ["~$53M rescission"],
+      "link": {"text": "Federal News Network, Jun 2024", "url": "https://federalnewsnetwork.com/hiring-retention/2024/06/dhs-aims-to-expand-ctms-after-challenges-with-rollout/"}
+    },
+    {
+      "id": "retention-94",
+      "label": "A claim worth watching",
+      "status": "secondary",
+      "published": "2024-06-01",
+      "html": "DHS publicly cited a \"94% two-year retention rate\" in mid-2024.",
+      "context": "{retention_24m_sentence}",
+      "foot": "Cross-checked using maturity-eligible individual timelines in this report",
+      "check": {
+        "claim": "94% two-year retention",
+        "metric": "retention_24m_pct",
+        "metric_label": "24-month retention in reconstructed timelines",
+        "claim_value": 94,
+        "tolerance": 5,
+        "verdict": "within_tolerance",
+        "note": "Cohort, date, and definition differences may explain some of the gap."
+      }
+    },
+    {
+      "id": "oig-25-38",
+      "label": "Primary-verified: OIG-25-38, Sep 11 2025",
+      "status": "primary",
+      "published": "2025-09-11",
+      "html": "A related-but-separate program: CISA \"did not properly design, implement, comply with, or manage\" its Cybersecurity Retention Incentive (CRI) &mdash; <b>$138M paid FY2020&ndash;24</b>, incentives given to ineligible staff, no recipient records kept, <b>$1.41M in improper back-payments</b> to 348 people.",
+      "caveat": "CISA has said (per press reporting, not this PDF) it is ending CRI because CTMS is meant to absorb that function; this report does not independently confirm that transition.",
+      "link": {"text": "Primary source: full OIG report PDF", "url": "https://www.oig.dhs.gov/sites/default/files/assets/2025-09/OIG-25-38-Sep25.pdf"}
+    },
+    {
+      "id": "cisa-2025-decline",
+      "label": "Context for 2025's decline",
+      "status": "secondary",
+      "published": "2025-06-03",
+      "html": "CISA's total workforce fell to ~2,400 by Dec 2025 (down ~29% since early 2025), following DOGE-driven contract cancellations (300+ election-security and red-team staff cut in Mar 2025) and mass departures &mdash; Axios reported a third of CISA's top cyber talent gone by Jun 2025.",
+      "context": "In this report's own data, {exit_wave_sentence}",
+      "link": {"text": "Axios, Jun 3 2025", "url": "https://www.axios.com/2025/06/03/cisa-staff-layoffs-resignations-trump-cuts"}
+    }
+  ]
+}

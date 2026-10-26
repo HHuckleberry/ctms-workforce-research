@@ -6,6 +6,9 @@ import os
 
 import pandas as pd
 
+import ctms_sources
+import ctms_trajectory_insights
+
 OUT = os.path.dirname(os.path.abspath(__file__))
 
 # Verified directly from our own pulled data (agency_subelement_code next to
@@ -832,6 +835,15 @@ def main():
         "retention_24m": retention_milestones["24"],
     }
 
+    source_cards, claim_checks = ctms_sources.resolve({
+        "coverage": {"first": months[0], "last": months[-1]},
+        "accountability_metrics": accountability_metrics,
+        "flow": flow,
+        "major_exit_event": major_exit_event,
+    })
+
+    trajectory_insights = ctms_trajectory_insights.build(people, events)
+
     report = {
         "generated": pd.Timestamp.now("UTC").isoformat(),
         "coverage": {"first": months[0], "last": months[-1], "n_months": len(months)},
@@ -868,6 +880,9 @@ def main():
             "component_contracted_ratio": COMPONENT_CONTRACTED_RATIO,
         },
         "accountability_metrics": accountability_metrics,
+        "trajectory_insights": trajectory_insights,
+        "sources": source_cards,
+        "claim_checks": claim_checks,
         "salary_spread": salary_spread,
         "estimated_salary_cost": estimated_salary_cost,
         "salary_cost_method": "Sum of one-twelfth of annualized adjusted basic pay for every observed CTMS person-month; not a payroll-ledger total.",
