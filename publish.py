@@ -43,6 +43,12 @@ def main():
         work = Path(temp)
         run("git", "init", "--quiet", cwd=work)
         run("git", "remote", "add", "origin", remote, cwd=work)
+        # The temp repo would otherwise fall back to the global git identity;
+        # reuse this repo's (e.g. a repo-local GitHub noreply email) instead.
+        for key in ("user.name", "user.email"):
+            value = run("git", "config", key, cwd=ROOT, check=False, capture=True).stdout.strip()
+            if value:
+                run("git", "config", key, value, cwd=work)
 
         fetched = run(
             "git", "fetch", "--quiet", "origin", "gh-pages",
