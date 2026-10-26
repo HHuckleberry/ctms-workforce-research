@@ -14,6 +14,8 @@
     <p class="dek">Population, pay, and individual career paths inside the Cybersecurity Talent Management System (pay plans DC/DL in DHS-only cybersecurity occupational series &mdash; positions paid under 6&nbsp;U.S.C.&nbsp;658), rebuilt fresh from OPM's public workforce data.</p>
     <span class="coverage-badge"><span class="dot"></span><span id="coverage-text">loading coverage&hellip;</span></span>
     <button type="button" class="export-btn" id="print-btn" style="margin-left:10px;">Print / Save PDF</button>
+    <a class="export-btn header-link" href="https://github.com/HHuckleberry/ctms-workforce-research" target="_blank" rel="noopener">Source code on GitHub &#8599;</a>
+    <a class="export-btn header-link" href="https://data.opm.gov/get-data/data-downloads" target="_blank" rel="noopener">OPM source data &#8599;</a>
   </header>
 
   <div class="tab-nav" role="tablist">
@@ -88,6 +90,7 @@
 {{ include "scripts/format.js" }}
 {{ include "scripts/hero-stats.js" }}
 {{ include "scripts/shared-chart-helpers.js" }}
+{{ include "scripts/plan-toggle.js" }}
 {{ include "scripts/headcount-stacked-area.js" }}
 {{ include "scripts/pay-growth-indexed-line-chart.js" }}
 {{ include "scripts/pay-spread-percentile-bands.js" }}

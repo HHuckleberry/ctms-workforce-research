@@ -219,13 +219,30 @@ def main():
         if best is None:
             continue
         m = best["m"].copy()
+        # DC and DL are separate pay tables; tag each raise with the plan the
+        # person was on *after* the raise so tiers can be split, not pooled.
+        m = m.merge(
+            history[history.snapshot == best["b"]][["person_id", "pay_plan_code"]],
+            on="person_id", how="left",
+        )
         m["pct_round"] = m["pct"].round(1)
         tier_groups = m.groupby("pct_round")
         tiers = sorted(
-            ({"pct": float(pct), "count": int(len(g)), "ids": g["person_id"].tolist()}
+            ({"pct": float(pct), "count": int(len(g)), "ids": g["person_id"].tolist(),
+              "dc_count": int((g["pay_plan_code"] == "DC").sum()),
+              "dl_count": int((g["pay_plan_code"] == "DL").sum()),
+              "dc_ids": g.loc[g["pay_plan_code"] == "DC", "person_id"].tolist(),
+              "dl_ids": g.loc[g["pay_plan_code"] == "DL", "person_id"].tolist()}
              for pct, g in tier_groups),
             key=lambda t: t["pct"]
         )
+
+        def _plan_stats(plan):
+            s = m.loc[m["pay_plan_code"] == plan, "pct"]
+            if s.empty:
+                return {"n": 0, "mean_pct": None, "median_pct": None}
+            return {"n": int(len(s)), "mean_pct": round(s.mean(), 2), "median_pct": round(s.median(), 2)}
+
         raise_years.append({
             "year": yr,
             "transition": best["label"],
@@ -233,6 +250,8 @@ def main():
             "n": len(m),
             "mean_pct": round(m["pct"].mean(), 2),
             "median_pct": round(m["pct"].median(), 2),
+            "dc": _plan_stats("DC"),
+            "dl": _plan_stats("DL"),
             "n_groupings": sum(1 for t in tiers if t["count"] >= 2),
             "n_distinct_values": len(tiers),
             "tiers": tiers,
