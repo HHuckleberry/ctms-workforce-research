@@ -453,7 +453,7 @@
   <section id="vs2210-section">
     <div class="section-head">
       <h2>CTMS vs. the standard track</h2>
-      <p class="section-sub">CTMS (DC/DL in DHS-only cyber series) against series 2210 (IT Management) inside the same fixed set of DHS components: only components that record CTMS personnel at some point in the dataset. The shared axis shows percentage headcount change from the first stable comparison month; hover for raw headcounts. <span id="vs2210-scope"></span></p>
+      <p class="section-sub">CTMS (DC/DL in DHS-only cyber series) against series 2210 (IT Management) inside the same fixed set of DHS components: only components that record CTMS personnel at some point in the dataset. The shared axis shows percentage headcount change from each series' own starting point; hover for raw headcounts. <span id="vs2210-scope"></span></p>
     </div>
     <div class="chart-card">
       <div class="legend">
@@ -467,12 +467,12 @@
       <div class="stat-grid" style="margin-top:16px;">
         <div class="stat-tile">
           <div class="stat-value" id="vs2210-start-ctms" style="font-size:22px;"></div>
-          <div class="stat-label">CTMS, baseline &rarr; now</div>
+          <div class="stat-label">CTMS, start &rarr; now</div>
           <div class="stat-delta" id="vs2210-start-ctms-raw"></div>
         </div>
         <div class="stat-tile">
           <div class="stat-value" id="vs2210-start-it" style="font-size:22px;"></div>
-          <div class="stat-label">2210, baseline &rarr; now</div>
+          <div class="stat-label">2210, start &rarr; now</div>
           <div class="stat-delta" id="vs2210-start-it-raw"></div>
         </div>
         <div class="stat-tile">
@@ -487,7 +487,7 @@
       <div class="section-head" style="margin-top:22px;margin-bottom:8px;"><h2 style="font-size:15px;">Same comparison, component by component</h2></div>
       <div class="table-scroll">
         <table class="decrease-table">
-          <thead><tr><th>Component</th><th style="text-align:right">CTMS baseline</th><th style="text-align:right">CTMS now</th><th style="text-align:right">CTMS change</th><th style="text-align:right">2210 baseline</th><th style="text-align:right">2210 now</th><th style="text-align:right">2210 change</th></tr></thead>
+          <thead><tr><th>Component</th><th style="text-align:right">CTMS start</th><th style="text-align:right">CTMS now</th><th style="text-align:right">CTMS change</th><th style="text-align:right">2210 start</th><th style="text-align:right">2210 now</th><th style="text-align:right">2210 change</th></tr></thead>
           <tbody id="vs2210-component-tbody"></tbody>
         </table>
       </div>
@@ -1475,7 +1475,7 @@ function drawSpread(svgId, wrapId, tipId, months, series, color, yDomain){
       '<td class="num">'+(row.it_change_pct!=null?fmtPct(row.it_change_pct):'n/a')+'</td></tr>'
   ).join('') || '<tr><td colspan="7" style="color:var(--text-muted);">Run a full refresh to build component-level comparison history.</td></tr>';
   document.getElementById('vs2210-foot').textContent =
-    'Baseline is ' + fmtMonth(V.baseline_month || months[0]) + ': each line starts at 0%, so vertical distance is the difference in workforce growth or contraction—not the difference in raw program size. Components are held fixed across the full series. Trailing change: CTMS '+pctOrNA(V.ctms_12m_pct)+' over 12 months and '+pctOrNA(V.ctms_24m_pct)+' over 24 months; 2210 '+pctOrNA(V.it_12m_pct)+' and '+pctOrNA(V.it_24m_pct)+', respectively.';
+    'Both lines start from ' + fmtMonth(V.baseline_month || months[0]) + ' at 0%, so vertical distance is the difference in workforce growth or contraction—not the difference in raw program size. Components are held fixed across the full series. Trailing change: CTMS '+pctOrNA(V.ctms_12m_pct)+' over 12 months and '+pctOrNA(V.ctms_24m_pct)+' over 24 months; 2210 '+pctOrNA(V.it_12m_pct)+' and '+pctOrNA(V.it_24m_pct)+', respectively.';
 })();
 // ---------- Flow diverging bars ----------
 (function flowChart(){
