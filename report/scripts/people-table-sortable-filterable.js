@@ -11,6 +11,7 @@ const PeopleTable = (function(){
 
   let sortKey = 'joined', sortType = 'str', sortDir = 'asc';
   let filter = null; // {conditions: [{field, value}], label}
+  let tagConditions = {}; // field -> {value, label} - the combinable tag-button state
 
   function cmp(a, b){
     let av = a[sortKey], bv = b[sortKey];
@@ -59,24 +60,46 @@ const PeopleTable = (function(){
     document.getElementById('clear-filter-btn').addEventListener('click', clearFilter);
   }
 
-  // A tag-filter button is "active" only when it's the sole condition driving
-  // the current filter - a drill-down from elsewhere in the report (a chart,
-  // a modal) sets its own filter and should leave these showing inactive,
-  // not falsely highlighted.
+  // A tag-filter button is "active" only when its exact field/value pair is
+  // part of the current combined tag selection - a drill-down from elsewhere
+  // in the report (a chart, a modal) resets tagConditions entirely, so these
+  // correctly show as inactive rather than stuck highlighted from a prior,
+  // unrelated filter.
   function updateTagButtonStates(){
     document.querySelectorAll('.tag-filter-btn').forEach(btn => {
-      const field = btn.dataset.field, value = btn.dataset.value === 'true';
-      const isActive = !!(filter && filter.conditions && filter.conditions.length === 1 &&
-        filter.conditions[0].field === field && filter.conditions[0].value === value);
-      btn.classList.toggle('active', isActive);
+      const field = btn.dataset.field, value = parseTagValue(btn.dataset.value);
+      btn.classList.toggle('active', tagConditions[field] && tagConditions[field].value === value);
     });
   }
 
+  function parseTagValue(raw){
+    if (raw === 'true') return true;
+    if (raw === 'false') return false;
+    return raw;
+  }
+
+  // Tag buttons combine (AND) across different fields - e.g. DL + Non-
+  // supervisor + Active all at once - but only one value per field, so
+  // clicking "DL" while "DC" is active switches rather than stacking, and
+  // clicking an already-active button clears just that one field.
   function toggleTagFilter(field, value, label){
-    const alreadyActive = filter && filter.conditions && filter.conditions.length === 1 &&
-      filter.conditions[0].field === field && filter.conditions[0].value === value;
-    if (alreadyActive) clearFilter();
-    else applyFilter(field, value, label);
+    if (tagConditions[field] && tagConditions[field].value === value) {
+      delete tagConditions[field];
+    } else {
+      tagConditions[field] = { value, label };
+    }
+    const entries = Object.entries(tagConditions);
+    if (entries.length === 0) {
+      filter = null;
+    } else {
+      filter = {
+        conditions: entries.map(([f, c]) => ({ field: f, value: c.value })),
+        label: entries.map(([, c]) => c.label).join(' · '),
+      };
+    }
+    renderFilterBar();
+    render();
+    Tabs.show('individuals');
   }
 
   function sparkline(pid, active){
@@ -128,18 +151,21 @@ const PeopleTable = (function(){
   }
 
   function applyFilter(field, value, label, extraConditions){
+    tagConditions = {}; // a drill-down from elsewhere replaces, not blends with, tag toggles
     filter = { conditions: [{field, value}].concat(extraConditions||[]), label };
     renderFilterBar();
     render();
     Tabs.show('individuals');
   }
   function applyIdFilter(ids, label){
+    tagConditions = {};
     filter = { ids: new Set(ids), label };
     renderFilterBar();
     render();
     Tabs.show('individuals');
   }
   function clearFilter(){
+    tagConditions = {};
     filter = null;
     renderFilterBar();
     render();
@@ -167,7 +193,7 @@ const PeopleTable = (function(){
   document.getElementById('people-search').addEventListener('input', (e) => setSearch(e.target.value));
 
   document.querySelectorAll('.tag-filter-btn').forEach(btn => {
-    const field = btn.dataset.field, value = btn.dataset.value === 'true';
+    const field = btn.dataset.field, value = parseTagValue(btn.dataset.value);
     btn.addEventListener('click', () => toggleTagFilter(field, value, btn.textContent));
   });
 
