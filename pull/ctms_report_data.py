@@ -144,20 +144,32 @@ def main():
     dec_events = events[events.event == "pay_decrease"]
     decrease_reasons = dec_events["decrease_reason"].value_counts().to_dict()
 
+    # Labels describe what the OPM records show, not a presumed cause. Each
+    # reason also says whether OPM data actually accounts for the cut.
     reason_labels = {
-        "relocation_lower_locality": "Moved to lower-cost locality",
-        "rate_tier_change": "Same-location rate-tier change",
-        "new_hire_pay_correction": "First-month pay correction",
-        "unexplained": "Negligible (rounding-level)",
+        "relocation_lower_locality": "Relocated to a different locality pay area",
+        "relocation_lagged": "Relocated; pay adjusted a month or two later",
+        "reverses_prior_spike": "Reverses a one-month pay spike (not a net cut)",
+        "rate_tier_change": "Rate-tier change, same locality",
+        "new_hire_pay_correction": "Early-tenure adjustment (cause not in OPM data)",
+        "unexplained": "Unexplained",
     }
+    explained_reasons = {"relocation_lower_locality", "relocation_lagged", "reverses_prior_spike", "rate_tier_change"}
     pay_decreases = []
     for _, r in dec_events.sort_values("from_snapshot").iterrows():
         loc = (f"{r['from_duty_station'].title()} → {r['to_duty_station'].title()}"
                if r["from_duty_station"] != r["to_duty_station"] else f"{r['from_duty_station'].title()} (same location)")
         pay_decreases.append({
             "id": r["person_id"],
+            "month": r["to_snapshot"],
             "location": loc, "from_salary": round(r["from_salary"]), "to_salary": round(r["to_salary"]),
-            "pct": round(r["pct"], 1), "reason": reason_labels.get(r["decrease_reason"], r["decrease_reason"]),
+            "pct": round(r["pct"], 1),
+            # before/after pay ratio: a clean 1.10 or 1.0476 points to a locality differential
+            "ratio": round(r["from_salary"] / r["to_salary"], 4) if r["to_salary"] else None,
+            "reason_code": r["decrease_reason"],
+            "reason": reason_labels.get(r["decrease_reason"], r["decrease_reason"]),
+            "detail": r["decrease_detail"] if pd.notna(r.get("decrease_detail")) else None,
+            "explained": r["decrease_reason"] in explained_reasons,
         })
 
     latest = full[full["snapshot"] == months[-1]]
@@ -770,7 +782,7 @@ def main():
                 e["to_salary"] = None if pd.isna(row["to_salary"]) else round(row["to_salary"])
                 e["pct"] = None if pd.isna(row["pct"]) else round(row["pct"], 1)
                 if pd.notna(row.get("decrease_reason")):
-                    e["reason"] = row["decrease_reason"]
+                    e["reason"] = reason_labels.get(row["decrease_reason"], row["decrease_reason"])
             elif row["event"] in ("relocation", "pay_plan_change", "rate_tier_change"):
                 e["from_value"] = row["from_value"]
                 e["to_value"] = row["to_value"]

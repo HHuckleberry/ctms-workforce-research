@@ -5,7 +5,7 @@ const PersonModal = (function(){
 
   const eventDesc = {
     pay_increase: e => 'Pay <b>' + fmtDollar(e.from_salary) + ' → ' + fmtDollar(e.to_salary) + '</b> (' + fmtPct(e.pct) + ')',
-    pay_decrease: e => 'Pay <b>' + fmtDollar(e.from_salary) + ' → ' + fmtDollar(e.to_salary) + '</b> (' + fmtPct(e.pct) + ')' + (e.reason ? ' — ' + e.reason.replace(/_/g,' ') : ''),
+    pay_decrease: e => 'Pay <b>' + fmtDollar(e.from_salary) + ' → ' + fmtDollar(e.to_salary) + '</b> (' + fmtPct(e.pct) + ')' + (e.reason ? ' — ' + e.reason : ''),
     pay_plan_change: e => (e.to_value==='DL' ? '<b>Promoted</b> ' : '<b>Moved</b> ') + e.from_value + ' → ' + e.to_value,
     rate_tier_change: e => 'Rate tier <b>' + e.from_value + ' → ' + e.to_value + '</b>',
     became_supervisor: () => 'Became a <b>supervisor/manager</b>',

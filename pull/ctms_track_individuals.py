@@ -228,9 +228,32 @@ def build_people_and_events(df):
                     got_raise = True
                     raises.append(pct)
                 reason = None
+                detail = None
                 if delta < 0:
+                    # Pay actions can post a month or two after a duty-station
+                    # move, so a cut in a "same location" month still counts
+                    # as a relocation if the locality changed just before it.
+                    lookback = [g.iloc[j].get("locality_pay_area") for j in range(max(0, i - 3), i - 1)]
+                    two_back = g.iloc[i - 2] if i >= 2 else None
                     if prev.get("locality_pay_area") != cur.get("locality_pay_area"):
                         reason = "relocation_lower_locality"
+                    elif any(pd.notna(loc) and loc != cur.get("locality_pay_area") for loc in lookback):
+                        reason = "relocation_lagged"
+                        # Most recent month still in the old locality; the move is the month after it.
+                        j = max(k for k in range(max(0, i - 3), i - 1)
+                                if g.iloc[k].get("locality_pay_area") != cur.get("locality_pay_area"))
+                        detail = (f"moved {str(g.iloc[j]['duty_station_city']).title()} → "
+                                  f"{str(g.iloc[j + 1]['duty_station_city']).title()} in {g.iloc[j + 1]['snapshot']}; "
+                                  f"pay adjusted in {cur['snapshot']}")
+                    elif (two_back is not None and pd.notna(two_back["salary_num"])
+                          and prev["salary_num"] > two_back["salary_num"]
+                          and cur["salary_num"] >= two_back["salary_num"]):
+                        # Up one month, back down the next, ending at or above
+                        # where it started: a one-month spike, not a pay cut.
+                        reason = "reverses_prior_spike"
+                        net = (cur["salary_num"] - two_back["salary_num"]) / two_back["salary_num"] * 100
+                        detail = (f"${two_back['salary_num']:,.0f} → ${prev['salary_num']:,.0f} → "
+                                  f"${cur['salary_num']:,.0f}; net {net:+.1f}% since {two_back['snapshot']}")
                     elif prev.get("step_or_rate_type") != cur.get("step_or_rate_type"):
                         reason = "rate_tier_change"
                     elif pd.notna(cur.get("length_of_service_years")) and float(cur.get("length_of_service_years") or 1) <= 0.25:
@@ -241,7 +264,7 @@ def build_people_and_events(df):
                     "person_id": pid, "from_snapshot": prev["snapshot"], "to_snapshot": cur["snapshot"],
                     "event": "pay_increase" if delta > 0 else "pay_decrease",
                     "from_salary": prev["salary_num"], "to_salary": cur["salary_num"],
-                    "delta": delta, "pct": pct, "decrease_reason": reason,
+                    "delta": delta, "pct": pct, "decrease_reason": reason, "decrease_detail": detail,
                     "from_duty_station": prev["duty_station_city"], "to_duty_station": cur["duty_station_city"],
                 })
             if prev["pay_plan_code"] != cur["pay_plan_code"]:
